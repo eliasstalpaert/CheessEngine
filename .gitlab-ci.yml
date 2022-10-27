@@ -1,0 +1,44 @@
+image: ubuntu:22.04
+
+.prepare-apt: &prepare-apt
+  - apt-get update -yqq
+  # Prevent interactive prompt when installing tzdata
+  - DEBIAN_FRONTEND=noninteractive apt-get install tzdata -yqq
+
+build:
+  stage: build
+  before_script:
+    - *prepare-apt
+    # Install build dependencies
+    - apt-get install build-essential cmake git -yqq
+    # Update all submodules (Catch2)
+    - git submodule update --init
+  script:
+    # Configure CMake
+    - cmake -S . -B Build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    # Build project
+    - cmake --build Build/
+  artifacts:
+    paths:
+      - Build/cplchess
+      - Build/Tests/tests
+
+unit_tests:
+  stage: test
+  script:
+    - ./Build/Tests/tests -r junit -o junit.xml
+  artifacts:
+    reports:
+      junit: junit.xml
+
+puzzle_tests:
+  stage: test
+  before_script:
+    - *prepare-apt
+    - apt-get install python3 python3-pip -yqq
+    - pip3 install chess junit-xml
+  script:
+    - ./Tests/puzzlerunner.py --engine ./Build/cplchess --junit junit.xml --timeout 180 ./Tests/Puzzles/*
+  artifacts:
+    reports:
+      junit: junit.xml
