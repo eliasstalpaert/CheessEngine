@@ -9,8 +9,46 @@
 #include <optional>
 #include <iosfwd>
 #include <vector>
+#include <bitset>
+
+
+//Default ctor bitset sets all bits to 0
+struct PiecePositions {
+    std::bitset<64> pawns;
+    std::bitset<64> knights;
+    std::bitset<64> bishops;
+    std::bitset<64> rooks;
+    std::bitset<64> queen;
+    std::bitset<64> king;
+
+    void andMask(std::bitset<64> mask) {
+        pawns &= mask;
+        knights &= mask;
+        bishops &= mask;
+        rooks &= mask;
+        queen &= mask;
+        king &= mask;
+    }
+};
+
+struct ColorPositions {
+    std::bitset<64> white;
+    std::bitset<64> black;
+};
 
 class Board {
+private:
+
+    PiecePositions piecePositions;
+
+    ColorPositions colorPositions;
+
+    PieceColor current_turn;
+
+    CastlingRights castling_rights;
+
+    Square::Optional en_passant_square;
+
 public:
 
     using Optional = std::optional<Board>;
