@@ -19,6 +19,9 @@ enum class PieceType {
 };
 
 class Piece {
+private:
+    const PieceColor piece_color;
+    const PieceType piece_type;
 public:
 
     using Optional = std::optional<Piece>;
