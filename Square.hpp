@@ -30,6 +30,9 @@ public:
     static const Square A8, B8, C8, D8, E8, F8, G8, H8;
 
 private:
+    Coordinate square_file;
+    Coordinate square_rank;
+    Index square_index;
 
     Square(Index index);
 };
