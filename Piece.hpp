@@ -18,10 +18,12 @@ enum class PieceType {
     King
 };
 
+char pieceTypeToChar(PieceType type);
+
 class Piece {
 private:
-    const PieceColor piece_color;
-    const PieceType piece_type;
+    PieceColor piece_color;
+    PieceType piece_type;
 public:
 
     using Optional = std::optional<Piece>;

@@ -91,3 +91,21 @@ PieceColor operator!(PieceColor color) {
             return PieceColor::White; //TODO: can this be omitted?
     }
 }
+
+char pieceTypeToChar(PieceType type) {
+    switch(type) {
+        case PieceType::Pawn:
+            return 'p';
+        case PieceType::Knight:
+            return 'n';
+        case PieceType::Bishop:
+            return 'b';
+        case PieceType::Rook:
+            return 'r';
+        case PieceType::Queen:
+            return 'q';
+        case PieceType::King:
+            return 'k';
+    }
+    return ' ';
+}

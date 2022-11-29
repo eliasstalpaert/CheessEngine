@@ -8,13 +8,13 @@ Square::Square(Index index) : square_file{index % 8}, square_rank{index / 8}, sq
 }
 
 Square::Optional Square::fromCoordinates(Coordinate file, Coordinate rank) {
+    if(file > 7 || rank > 7) return std::nullopt;
     Index calc_index = rank*8 + file;
-    if(calc_index < 0 || calc_index > 63) return std::nullopt;
-    else return Square(calc_index);
+    return Square(calc_index);
 }
 
 Square::Optional Square::fromIndex(Index index) {
-    if(index < 0 || index > 63) return std::nullopt;
+    if(index > 63) return std::nullopt;
     else return Square(index);
 }
 
@@ -114,7 +114,7 @@ const Square Square::G8 = Square(56 + 6);
 const Square Square::H8 = Square(56 + 7);
 
 std::ostream& operator<<(std::ostream& os, const Square& square) {
-    os << char(square.rank() + 97) << char(square.file() + 49);
+    os << char(square.file() + 97) << char(square.rank() + 49);
     return os;
 }
 

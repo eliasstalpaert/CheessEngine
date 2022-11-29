@@ -9,12 +9,18 @@
 #include <string>
 
 class Move {
+private:
+    Square from_square;
+    Square to_square;
+    std::optional<PieceType> move_promotion;
+
 public:
 
     using Optional = std::optional<Move>;
 
     Move(const Square& from, const Square& to,
          const std::optional<PieceType>& promotion = std::nullopt);
+
 
     static Optional fromUci(const std::string& uci);
 
