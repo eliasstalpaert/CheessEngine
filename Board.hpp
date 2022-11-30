@@ -37,18 +37,6 @@ struct ColorPositions {
 };
 
 class Board {
-private:
-
-    PiecePositions piecePositions;
-
-    ColorPositions colorPositions;
-
-    PieceColor current_turn;
-
-    CastlingRights castling_rights;
-
-    Square::Optional en_passant_square;
-
 public:
 
     using Optional = std::optional<Board>;
@@ -69,6 +57,30 @@ public:
 
     void pseudoLegalMoves(MoveVec& moves) const;
     void pseudoLegalMovesFrom(const Square& from, MoveVec& moves) const;
+
+private:
+
+    PiecePositions piecePositions;
+
+    ColorPositions colorPositions;
+
+    PieceColor current_turn;
+
+    CastlingRights castling_rights;
+
+    Square::Optional en_passant_square;
+
+
+    Square::Index frontIndex(Square::Index from) const;
+    Square::Index frontLeftIndex(Square::Index from) const;
+    Square::Index frontRightIndex(Square::Index from) const;
+
+
+
+    void pseudoLegalPawnMovesFrom(Square::Index index, Board::MoveVec& moves) const;
+
+
+    std::optional<PieceColor> checkOccupation(Square::Index index) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const Board& board);
