@@ -75,6 +75,11 @@ private:
     Square::Index frontLeftIndex(Square::Index from) const;
     Square::Index frontRightIndex(Square::Index from) const;
 
+    bool promotionCandidate(Square::Index index) const;
+
+    bool doublePushCandidate(Square::Index index) const;
+    Square::Index doublePushIndex(Square::Index from) const;
+
 
 
     void pseudoLegalPawnMovesFrom(Square::Index index, Board::MoveVec& moves) const;

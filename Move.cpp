@@ -47,9 +47,9 @@ std::ostream& operator<<(std::ostream& os, const Move& move) {
 
 
 bool operator<(const Move& lhs, const Move& rhs) {
-    return (lhs.from().index() + lhs.to().index() + static_cast<unsigned>(lhs.promotion().value()))
+    return (lhs.from().index() + lhs.to().index() + (lhs.promotion().has_value() ? static_cast<unsigned>(lhs.promotion().value()) : 0))
             <
-             (rhs.from().index() + rhs.to().index() + static_cast<unsigned>(rhs.promotion().value()));
+             (rhs.from().index() + rhs.to().index() + (rhs.promotion().has_value() ? static_cast<unsigned>(rhs.promotion().value()) : 0));
 }
 
 bool operator==(const Move& lhs, const Move& rhs) {

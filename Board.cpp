@@ -171,6 +171,17 @@ Square::Index Board::frontIndex(Square::Index from) const {
     }
 }
 
+Square::Index Board::doublePushIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from + 16;
+        case PieceColor::Black :
+            return from - 16;
+        default :
+            return 64; //Never occurs
+    }
+}
+
 Square::Index Board::frontLeftIndex(Square::Index from) const {
     switch (current_turn) {
         case PieceColor::White :
@@ -193,6 +204,28 @@ Square::Index Board::frontRightIndex(Square::Index from) const {
     }
 }
 
+bool Board::promotionCandidate(Square::Index index) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return index > 47;
+        case PieceColor::Black :
+            return index < 16;
+        default : //Never occurs
+            return false;
+    }
+}
+
+bool Board::doublePushCandidate(Square::Index index) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return index > 7 && index < 16;
+        case PieceColor::Black :
+            return index < 56 && index > 47;
+        default : //Never occurs
+            return false;
+    }
+}
+
 
 void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& moves) const {
     //TODO: code duplication
@@ -203,7 +236,7 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
     std::optional<PieceColor> front_pawn = checkOccupation(front_index);
     if(!front_pawn.has_value()){
         Square front_square = Square::fromIndex(front_index).value();
-        if(pawn_index > 47) { //Second to last rank pawns
+        if(promotionCandidate(pawn_index)) { //Second to last rank pawns
             //Promotion to queen
             moves.push_back(Move(current_square, front_square, PieceType::Queen));
             //Promotion to rook
@@ -215,6 +248,12 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
         }
         else { //Promotion is mandatory
             moves.push_back(Move(current_square, front_square));
+            if(doublePushCandidate(pawn_index)) {
+                Square::Index double_push_index = doublePushIndex(pawn_index);
+                if(!checkOccupation(double_push_index).has_value()) {
+                    moves.push_back(Move(current_square, Square::fromIndex(doublePushIndex(pawn_index)).value()));
+                }
+            }
         }
 
     }
@@ -225,7 +264,7 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
 
         if(front_left_pawn.has_value() && current_turn != front_left_pawn.value()) { //Capture possible
             Square front_left_square = Square::fromIndex(front_left_index).value();
-            if(pawn_index > 47) { //Promotion
+            if(promotionCandidate(pawn_index)) { //Promotion
                 //Promotion to queen
                 moves.push_back(Move(current_square, front_left_square, PieceType::Queen));
                 //Promotion to rook
@@ -247,7 +286,7 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
         std::optional<PieceColor> front_right_pawn = checkOccupation(front_right_index);
         if(front_right_pawn.has_value() && current_turn != front_right_pawn.value()) { //Capture possible
             Square front_right_square = Square::fromIndex(front_right_index).value();
-            if(pawn_index > 47) { //Promotion
+            if(promotionCandidate(pawn_index)) { //Promotion
                 //Promotion to queen
                 moves.push_back(Move(current_square, front_right_square, PieceType::Queen));
                 //Promotion to rook
