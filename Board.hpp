@@ -80,6 +80,8 @@ private:
     bool doublePushCandidate(Square::Index index) const;
     Square::Index doublePushIndex(Square::Index from) const;
 
+    bool enPassantCheck(Square::Index index) const;
+
 
 
     void pseudoLegalPawnMovesFrom(Square::Index index, Board::MoveVec& moves) const;

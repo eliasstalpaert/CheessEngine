@@ -4,7 +4,7 @@
 #include <cassert>
 #include <cmath>
 
-Board::Board() : en_passant_square{Square::A1}
+Board::Board() : en_passant_square{std::nullopt}
 {
 }
 
@@ -226,6 +226,21 @@ bool Board::doublePushCandidate(Square::Index index) const {
     }
 }
 
+bool Board::enPassantCheck(Square::Index index) const {
+    if(!en_passant_square.has_value()) return false;
+    Square::Index en_passant_index = en_passant_square->index();
+    if(index % 8 == 0) {
+        //Only check white-right
+        return index + 1 == en_passant_index;
+    }
+    else if (index % 8 == 7) {
+        //Only check white-left
+        return index - 1 == en_passant_index;
+    }
+    else {
+        return index + 1 == en_passant_index || index - 1 == en_passant_index;
+    }
+}
 
 void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& moves) const {
     //TODO: code duplication
@@ -257,9 +272,15 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
         }
 
     }
-    //Front-left check for captures + check for promotion
-    if(pawn_index % 8 > 0) {
-        Square::Index front_left_index = frontLeftIndex(pawn_index);
+
+    Square::Index front_left_index = frontLeftIndex(pawn_index);
+    Square::Index front_right_index = frontRightIndex(pawn_index);
+
+    signed front_left_rank_distance = abs(static_cast<signed>((front_left_index / 8)) - static_cast<signed>((pawn_index / 8)));
+    signed front_right_rank_distance = abs(static_cast<signed>((front_right_index / 8)) - static_cast<signed>((pawn_index / 8)));
+
+    //Front left captures check
+    if(front_left_rank_distance == 1) {
         std::optional<PieceColor> front_left_pawn = checkOccupation(front_left_index);
 
         if(front_left_pawn.has_value() && current_turn != front_left_pawn.value()) { //Capture possible
@@ -280,10 +301,10 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
         }
     }
 
-    //Front-right check for captures + check for promotion
-    if(pawn_index % 8 < 7) {
-        Square::Index front_right_index = frontRightIndex(pawn_index);
+    //Front right captures check
+    if(front_right_rank_distance == 1) {
         std::optional<PieceColor> front_right_pawn = checkOccupation(front_right_index);
+
         if(front_right_pawn.has_value() && current_turn != front_right_pawn.value()) { //Capture possible
             Square front_right_square = Square::fromIndex(front_right_index).value();
             if(promotionCandidate(pawn_index)) { //Promotion
@@ -301,8 +322,20 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
             }
         }
     }
-    //TODO: Pawn en-passant move
+
     //Check if en-passant move possible
+    if(en_passant_square.has_value()) {
+        Square::Index en_passant_index = en_passant_square->index();
+
+        if(front_right_index == en_passant_index && front_right_rank_distance == 1) {
+            moves.push_back(Move(current_square, Square::fromIndex(front_right_index).value()));
+        }
+        if (front_left_index == en_passant_index && front_left_rank_distance == 1) {
+            moves.push_back(Move(current_square, Square::fromIndex(front_left_index).value()));
+        }
+
+    }
+
 }
 
 
