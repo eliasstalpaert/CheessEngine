@@ -94,6 +94,7 @@ private:
     void pseudoLegalPawnMovesFrom(Square::Index index, Board::MoveVec& moves) const;
     void pseudoLegalKingMovesFrom(Square::Index index, Board::MoveVec& moves) const;
     void pseudoLegalKnightMovesFrom(Square::Index index, Board::MoveVec& moves) const;
+    void pseudoLegalRookMovesFrom(Square::Index index, Board::MoveVec& moves) const;
 
 
     std::optional<PieceColor> checkOccupation(Square::Index index) const;
