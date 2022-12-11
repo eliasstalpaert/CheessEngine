@@ -98,6 +98,7 @@ private:
     void pseudoLegalKnightMovesFrom(Square::Index index, Board::MoveVec& moves) const;
     void pseudoLegalRookMovesFrom(Square::Index index, Board::MoveVec& moves) const;
     void pseudoLegalBishopMovesFrom(Square::Index index, Board::MoveVec& moves) const;
+    void pseudoLegalQueenMovesFrom(Square::Index index, Board::MoveVec& moves) const;
 
 
     std::optional<PieceColor> checkOccupation(Square::Index index) const;

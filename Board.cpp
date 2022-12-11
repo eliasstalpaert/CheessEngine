@@ -123,6 +123,7 @@ void Board::pseudoLegalMoves(MoveVec& moves) const {
             else if(piecePositions.knights[piece_index]) pseudoLegalKnightMovesFrom(piece_index, moves);
             else if(piecePositions.rooks[piece_index]) pseudoLegalRookMovesFrom(piece_index, moves);
             else if(piecePositions.bishops[piece_index]) pseudoLegalBishopMovesFrom(piece_index, moves);
+            else if(piecePositions.queen[piece_index]) pseudoLegalQueenMovesFrom(piece_index, moves);
         }
 
     }
@@ -150,6 +151,7 @@ void Board::pseudoLegalMovesFrom(const Square& from,
                     pseudoLegalRookMovesFrom(from.index(), moves);
                     break;
                 case PieceType::Queen :
+                    pseudoLegalQueenMovesFrom(from.index(), moves);
                     break;
                 case PieceType::King :
                     pseudoLegalKingMovesFrom(from.index(), moves);
@@ -738,6 +740,11 @@ void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVe
             if(occupation.value() != current_turn) moves.push_back(Move(current_square, back_left_square));
         }
     }
+}
+
+void Board::pseudoLegalQueenMovesFrom(Square::Index index, Board::MoveVec &moves) const {
+    pseudoLegalRookMovesFrom(index, moves);
+    pseudoLegalBishopMovesFrom(index, moves);
 }
 
 std::ostream& operator<<(std::ostream& os, const Board& board) {
