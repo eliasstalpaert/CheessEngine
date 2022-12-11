@@ -87,11 +87,13 @@ private:
 
     bool firstRankCheck(Square::Index index) const;
     bool lastRankCheck(Square::Index index) const;
+    bool isOutOfRange(Square::Index index) const;
 
 
 
     void pseudoLegalPawnMovesFrom(Square::Index index, Board::MoveVec& moves) const;
     void pseudoLegalKingMovesFrom(Square::Index index, Board::MoveVec& moves) const;
+    void pseudoLegalKnightMovesFrom(Square::Index index, Board::MoveVec& moves) const;
 
 
     std::optional<PieceColor> checkOccupation(Square::Index index) const;
