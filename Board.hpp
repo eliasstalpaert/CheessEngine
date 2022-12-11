@@ -72,6 +72,11 @@ private:
 
 
     Square::Index frontIndex(Square::Index from) const;
+    Square::Index backIndex(Square::Index from) const;
+    Square::Index leftIndex(Square::Index from) const;
+    Square::Index rightIndex(Square::Index from) const;
+    Square::Index backLeftIndex(Square::Index from) const;
+    Square::Index backRightIndex(Square::Index from) const;
     Square::Index frontLeftIndex(Square::Index from) const;
     Square::Index frontRightIndex(Square::Index from) const;
 
@@ -80,11 +85,13 @@ private:
     bool doublePushCandidate(Square::Index index) const;
     Square::Index doublePushIndex(Square::Index from) const;
 
-    bool enPassantCheck(Square::Index index) const;
+    bool firstRankCheck(Square::Index index) const;
+    bool lastRankCheck(Square::Index index) const;
 
 
 
     void pseudoLegalPawnMovesFrom(Square::Index index, Board::MoveVec& moves) const;
+    void pseudoLegalKingMovesFrom(Square::Index index, Board::MoveVec& moves) const;
 
 
     std::optional<PieceColor> checkOccupation(Square::Index index) const;
