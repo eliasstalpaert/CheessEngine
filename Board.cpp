@@ -116,7 +116,7 @@ void Board::pseudoLegalMoves(MoveVec& moves) const {
             break;
     }
 
-    for(Square::Index piece_index = 0; piece_index < 63 ; piece_index++) {
+    for(Square::Index piece_index = 0; piece_index < 64 ; piece_index++) {
         if(current_turn_pieces[piece_index]) {
             if(piecePositions.pawns[piece_index]) pseudoLegalPawnMovesFrom(piece_index, moves);
             else if(piecePositions.king[piece_index]) pseudoLegalKingMovesFrom(piece_index, moves);
@@ -491,6 +491,46 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
         else if (right_pawn.value() != current_turn) moves.push_back(Move(current_square, right_square));
     }
 
+    //Castling
+    //TODO: check of destination wordt aangevallen
+    switch(current_turn) {
+        case PieceColor::White :
+            if(static_cast<bool>(castling_rights & CastlingRights::WhiteKingside)) {
+                if(!checkOccupation(right_index).has_value()) {
+                    Square::Index right_right_index = rightIndex(right_index);
+                    if(!checkOccupation(right_right_index).has_value()) {
+                        moves.push_back(Move(current_square, Square::fromIndex(right_right_index).value()));
+                    }
+                }
+            }
+            if(static_cast<bool>(castling_rights & CastlingRights::WhiteQueenside)) {
+                if(!checkOccupation(left_index).has_value()) {
+                    Square::Index left_left_index = leftIndex(left_index);
+                    if(!checkOccupation(left_left_index).has_value()) {
+                        if(!checkOccupation(leftIndex(left_left_index)).has_value()) moves.push_back(Move(current_square, Square::fromIndex(left_left_index).value()));
+                    }
+                }
+            }
+            break;
+        case PieceColor::Black :
+            if(static_cast<bool>(castling_rights & CastlingRights::BlackQueenside)) {
+                if(!checkOccupation(right_index).has_value()) {
+                    Square::Index right_right_index = rightIndex(right_index);
+                    if(!checkOccupation(right_right_index).has_value()) {
+                        if(!checkOccupation(rightIndex(right_right_index)).has_value()) moves.push_back(Move(current_square, Square::fromIndex(right_right_index).value()));
+                    }
+                }
+            }
+            if(static_cast<bool>(castling_rights & CastlingRights::BlackKingside)) {
+                if(!checkOccupation(left_index).has_value()) {
+                    Square::Index left_left_index = leftIndex(left_index);
+                    if(!checkOccupation(left_left_index).has_value()) {
+                        moves.push_back(Move(current_square, Square::fromIndex(left_left_index).value()));
+                    }
+                }
+            }
+            break;
+    }
 }
 
 void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVec &moves) const {
