@@ -21,6 +21,8 @@ struct PiecePositions {
     std::bitset<64> queen;
     std::bitset<64> king;
 
+    std::bitset<64> blacks = 0xAA55AA55AA55AA55;
+
     void andMask(std::bitset<64> mask) {
         pawns &= mask;
         knights &= mask;
@@ -95,6 +97,7 @@ private:
     void pseudoLegalKingMovesFrom(Square::Index index, Board::MoveVec& moves) const;
     void pseudoLegalKnightMovesFrom(Square::Index index, Board::MoveVec& moves) const;
     void pseudoLegalRookMovesFrom(Square::Index index, Board::MoveVec& moves) const;
+    void pseudoLegalBishopMovesFrom(Square::Index index, Board::MoveVec& moves) const;
 
 
     std::optional<PieceColor> checkOccupation(Square::Index index) const;

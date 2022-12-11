@@ -122,6 +122,7 @@ void Board::pseudoLegalMoves(MoveVec& moves) const {
             else if(piecePositions.king[piece_index]) pseudoLegalKingMovesFrom(piece_index, moves);
             else if(piecePositions.knights[piece_index]) pseudoLegalKnightMovesFrom(piece_index, moves);
             else if(piecePositions.rooks[piece_index]) pseudoLegalRookMovesFrom(piece_index, moves);
+            else if(piecePositions.bishops[piece_index]) pseudoLegalBishopMovesFrom(piece_index, moves);
         }
 
     }
@@ -143,6 +144,7 @@ void Board::pseudoLegalMovesFrom(const Square& from,
                     pseudoLegalKnightMovesFrom(from.index(), moves);
                     break;
                 case PieceType::Bishop :
+                    pseudoLegalBishopMovesFrom(from.index(), moves);
                     break;
                 case PieceType::Rook :
                     pseudoLegalRookMovesFrom(from.index(), moves);
@@ -347,6 +349,7 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
     Square::Index front_left_index = frontLeftIndex(pawn_index);
     Square::Index front_right_index = frontRightIndex(pawn_index);
 
+    //TODO: replace distance with black/white square change check
     signed front_left_rank_distance = abs(static_cast<signed>((front_left_index / 8)) - static_cast<signed>((pawn_index / 8)));
     signed front_right_rank_distance = abs(static_cast<signed>((front_right_index / 8)) - static_cast<signed>((pawn_index / 8)));
 
@@ -668,6 +671,71 @@ void Board::pseudoLegalRookMovesFrom(Square::Index rook_index, Board::MoveVec &m
         } else {
             collided = true;
             if(occupation.value() != current_turn) moves.push_back(Move(current_square, right_square));
+        }
+    }
+}
+
+void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVec &moves) const {
+    Square current_square = Square::fromIndex(bishop_index).value();
+
+    bool collided = false;
+    Square::Index work_front_left_index = frontLeftIndex(bishop_index);
+    bool start_color = piecePositions.blacks[bishop_index];
+
+    while(!collided && !isOutOfRange(work_front_left_index) && piecePositions.blacks[work_front_left_index] == start_color) {
+        std::optional<PieceColor> occupation = checkOccupation(work_front_left_index);
+        Square front_left_square = Square::fromIndex(work_front_left_index).value();
+        if(!occupation.has_value()) {
+            moves.push_back(Move(current_square,front_left_square));
+            work_front_left_index = frontLeftIndex(work_front_left_index);
+        } else {
+            collided = true;
+            if(occupation.value() != current_turn) moves.push_back(Move(current_square, front_left_square));
+        }
+    }
+
+    collided = false;
+    Square::Index work_front_right_index = frontRightIndex(bishop_index);
+
+    while(!collided && !isOutOfRange(work_front_right_index) && piecePositions.blacks[work_front_right_index] == start_color) {
+        std::optional<PieceColor> occupation = checkOccupation(work_front_right_index);
+        Square front_right_square = Square::fromIndex(work_front_right_index).value();
+        if(!occupation.has_value()) {
+            moves.push_back(Move(current_square,front_right_square));
+            work_front_right_index = frontRightIndex(work_front_right_index);
+        } else {
+            collided = true;
+            if(occupation.value() != current_turn) moves.push_back(Move(current_square, front_right_square));
+        }
+    }
+
+    collided = false;
+    Square::Index work_back_right_index = backRightIndex(bishop_index);
+
+    while(!collided && !isOutOfRange(work_back_right_index) && piecePositions.blacks[work_back_right_index] == start_color) {
+        std::optional<PieceColor> occupation = checkOccupation(work_back_right_index);
+        Square back_right_square = Square::fromIndex(work_back_right_index).value();
+        if(!occupation.has_value()) {
+            moves.push_back(Move(current_square,back_right_square));
+            work_back_right_index = backRightIndex(work_back_right_index);
+        } else {
+            collided = true;
+            if(occupation.value() != current_turn) moves.push_back(Move(current_square, back_right_square));
+        }
+    }
+
+    collided = false;
+    Square::Index work_back_left_index = backLeftIndex(bishop_index);
+
+    while(!collided && !isOutOfRange(work_back_left_index) && piecePositions.blacks[work_back_left_index] == start_color) {
+        std::optional<PieceColor> occupation = checkOccupation(work_back_left_index);
+        Square back_left_square = Square::fromIndex(work_back_left_index).value();
+        if(!occupation.has_value()) {
+            moves.push_back(Move(current_square,back_left_square));
+            work_back_left_index = backLeftIndex(work_back_left_index);
+        } else {
+            collided = true;
+            if(occupation.value() != current_turn) moves.push_back(Move(current_square, back_left_square));
         }
     }
 }
