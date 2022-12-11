@@ -122,8 +122,10 @@ Square::Optional Board::enPassantSquare() const {
 
 void Board::makeMove(const Move& move) {
     Square from_square = move.from();
+    Square::Index from_index = from_square.index();
     Piece::Optional from_piece = piece(from_square);
     Square to_square = move.to();
+    Square::Index to_index = to_square.index();
     std::optional<PieceType> promotion = move.promotion();
 
     //Capturecheck is in clearpiece
@@ -132,20 +134,20 @@ void Board::makeMove(const Move& move) {
 
     //Castling move
     if(from_piece->type() == PieceType::King) {
-        signed move_distance = static_cast<signed>(to_square.index()) - static_cast<signed>(from_square.index());
+        signed move_distance = static_cast<signed>(to_index) - static_cast<signed>(from_index);
 
-        switch(from_piece->color()) { //could also reference 'current_turn'
+        switch(current_turn) {
             case PieceColor::White :
                 if(abs(move_distance) == 2) {
                     if(std::signbit(move_distance)) {
                         //Queenside
                         clearCapturePiece(Square::A1);
-                        setPiece(Square::fromIndex(to_square.index() + 1).value(), Piece(PieceColor::White, PieceType::Rook));
+                        setPiece(Square::fromIndex(to_index + 1).value(), Piece(PieceColor::White, PieceType::Rook));
                     }
                     else {
                         //Kingside
                         clearCapturePiece(Square::H1);
-                        setPiece(Square::fromIndex(to_square.index() - 1).value(), Piece(PieceColor::White, PieceType::Rook));
+                        setPiece(Square::fromIndex(to_index - 1).value(), Piece(PieceColor::White, PieceType::Rook));
                     }
                 }
                 //Update castling rights
@@ -156,12 +158,12 @@ void Board::makeMove(const Move& move) {
                     if(std::signbit(move_distance)) {
                         //Queenside
                         clearCapturePiece(Square::A8);
-                        setPiece(Square::fromIndex(to_square.index() + 1).value(), Piece(PieceColor::Black, PieceType::Rook));
+                        setPiece(Square::fromIndex(to_index + 1).value(), Piece(PieceColor::Black, PieceType::Rook));
                     }
                     else {
                         //Kingside
                         clearCapturePiece(Square::H8);
-                        setPiece(Square::fromIndex(to_square.index() - 1).value(), Piece(PieceColor::Black, PieceType::Rook));
+                        setPiece(Square::fromIndex(to_index - 1).value(), Piece(PieceColor::Black, PieceType::Rook));
                     }
                 }
                 //Update castling rights
@@ -173,7 +175,7 @@ void Board::makeMove(const Move& move) {
 
     //CastlingRights rook movement
     if(from_piece->type() == PieceType::Rook) {
-        switch(from_square.index()) {
+        switch(from_index) {
             //Color checking is not needed I think
             case 0 :
                 //White queenside
@@ -195,7 +197,7 @@ void Board::makeMove(const Move& move) {
     }
 
     //Rook starting position occupied, removing castlingrights if there were any
-    switch(to_square.index()) {
+    switch(to_index) {
         case 0 :
             //White queenside
             castling_rights &= ~CastlingRights::WhiteQueenside;
@@ -213,6 +215,40 @@ void Board::makeMove(const Move& move) {
             castling_rights &= ~CastlingRights::BlackKingside;
             break;
     }
+
+    //En passant move
+    if(from_piece->type() == PieceType::Pawn) {
+        //eps capture
+        if(en_passant_square.has_value()) {
+            if(to_square == en_passant_square){
+                clearCapturePiece(Square::fromIndex(backIndex(en_passant_square->index())).value()); //Back square from perspective of current turn
+            }
+            en_passant_square = std::nullopt;
+        }
+        //Check for new eps
+        signed move_distance = static_cast<signed>(from_index / 8) - static_cast<signed>(to_index / 8);
+        if(abs(move_distance) == 2) {
+            Square::Index left_index = leftIndex(to_index);
+            Square::Index right_index = rightIndex(to_index);
+            
+            if(left_index / 8 == to_index / 8) {
+                Piece::Optional left_piece = piece(Square::fromIndex(left_index).value());
+                if(left_piece.has_value()) {
+                    if(left_piece->type() == PieceType::Pawn && left_piece->color() == !current_turn) en_passant_square = Square::fromIndex(
+                                frontIndex(from_index));
+                }
+            }
+
+            if(right_index / 8 == from_index / 8) {
+                Piece::Optional right_piece = piece(Square::fromIndex(right_index).value());
+                if(right_piece.has_value()) {
+                    if(right_piece->type() == PieceType::Pawn && right_piece->color() == !current_turn) en_passant_square = Square::fromIndex(
+                                frontIndex(from_index));
+                }
+            }
+        }
+
+    } else if (en_passant_square.has_value()) en_passant_square = std::nullopt; //if not a pawn move and there was eps, eps is expired
 
     //Promotion move
     if(promotion.has_value()) {
