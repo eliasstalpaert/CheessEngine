@@ -21,15 +21,15 @@ struct PiecePositions {
     std::bitset<64> queen;
     std::bitset<64> king;
 
-    std::bitset<64> blacks = 0xAA55AA55AA55AA55;
+    std::bitset<64> black_squares = 0xAA55AA55AA55AA55;
 
-    void andMask(std::bitset<64> mask) {
-        pawns &= mask;
-        knights &= mask;
-        bishops &= mask;
-        rooks &= mask;
-        queen &= mask;
-        king &= mask;
+    void clearBit(Square::Index index) {
+        pawns[index] = 0;
+        knights[index] = 0;
+        bishops[index] = 0;
+        rooks[index] = 0;
+        queen[index] = 0;
+        king[index] = 0;
     }
 };
 
@@ -46,6 +46,7 @@ public:
 
     Board();
 
+    void clearCapturePiece(const Square& square);
     void setPiece(const Square& square, const Piece::Optional& piece);
     Piece::Optional piece(const Square& square) const;
     void setTurn(PieceColor turn);

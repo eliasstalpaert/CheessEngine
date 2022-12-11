@@ -9,60 +9,74 @@ Board::Board() : en_passant_square{std::nullopt}
 }
 
 void Board::setPiece(const Square& square, const Piece::Optional& piece) {
-    std::bitset<64> piece_mask; // 0 initialized
-    piece_mask[square.index()] = true;
-    std::bitset<64> inverted_piece_mask = piece_mask;
-    inverted_piece_mask.flip();
+    Square::Index square_index = square.index();
 
     switch (piece->color()) {
         case PieceColor::White:
-            colorPositions.white |= piece_mask;
-            colorPositions.black &= inverted_piece_mask;
+            colorPositions.white[square_index] = 1;
+            colorPositions.black[square_index] = 0;
             break;
         case PieceColor::Black:
-            colorPositions.black |= piece_mask;
-            colorPositions.white &= inverted_piece_mask;
+            colorPositions.black[square_index] = 1;
+            colorPositions.white[square_index] = 0;
             break;
         default: //Never occurs
             break;
     }
 
     //Clear bit in all bitboards (avoid checking for each one) //TODO: check if it is faster than checking
-    piecePositions.andMask(inverted_piece_mask);
+    piecePositions.clearBit(square_index);
 
     switch (piece->type()) {
         case PieceType::Pawn:
-            piecePositions.pawns |= piece_mask;
+            piecePositions.pawns[square_index] = 1;
             break;
         case PieceType::Knight:
-            piecePositions.knights |= piece_mask;
+            piecePositions.knights[square_index] = 1;
             break;
         case PieceType::Bishop:
-            piecePositions.bishops |= piece_mask;
+            piecePositions.bishops[square_index] = 1;
             break;
         case PieceType::Rook:
-            piecePositions.rooks |= piece_mask;
+            piecePositions.rooks[square_index] = 1;
             break;
         case PieceType::Queen:
-            piecePositions.queen |= piece_mask;
+            piecePositions.queen[square_index] = 1;
             break;
         case PieceType::King:
-            piecePositions.king |= piece_mask;
+            piecePositions.king[square_index] = 1;
             break;
         default: //Never occurs
             break;
     }
 }
 
+void Board::clearCapturePiece(const Square &square) {
+    Piece::Optional occupy_piece = piece(square);
+    if(occupy_piece.has_value()) {
+        switch (occupy_piece.value().color()) {
+            case PieceColor::White :
+                colorPositions.white[square.index()] = 0;
+                break;
+            case PieceColor::Black :
+                colorPositions.black[square.index()] = 0;
+                break;
+        }
+        piecePositions.clearBit(square.index());
+    }
+}
+
 Piece::Optional Board::piece(const Square& square) const {
-    unsigned index = square.index();
-    PieceColor color = PieceColor::White;
+    Square::Index index = square.index();
+    PieceColor color;
+
+    if(isOutOfRange(index)) return std::nullopt;
 
     if(colorPositions.white[index]) color = PieceColor::White;
     else if(colorPositions.black[index]) color = PieceColor::Black;
     else return std::nullopt;
 
-    char candidate_symbol = 'x';
+    char candidate_symbol = 'x'; //empty square
     if(piecePositions.pawns[index]) candidate_symbol = 'p';
     else if(piecePositions.knights[index]) candidate_symbol = 'n';
     else if(piecePositions.bishops[index]) candidate_symbol = 'b';
@@ -98,10 +112,137 @@ Square::Optional Board::enPassantSquare() const {
     return en_passant_square;
 }
 
+/********************************************************
+ *
+ * MOVE MAKING
+ *
+ * *****************************************************************/
+
+
+
 void Board::makeMove(const Move& move) {
-    (void)move;
+    Square from_square = move.from();
+    Piece::Optional from_piece = piece(from_square);
+    Square to_square = move.to();
+    std::optional<PieceType> promotion = move.promotion();
+
+    //Capturecheck is in clearpiece
+    clearCapturePiece(to_square);
+    clearCapturePiece(from_square);
+
+    //Castling move
+    if(from_piece->type() == PieceType::King) {
+        signed move_distance = static_cast<signed>(to_square.index()) - static_cast<signed>(from_square.index());
+
+        switch(from_piece->color()) { //could also reference 'current_turn'
+            case PieceColor::White :
+                if(abs(move_distance) == 2) {
+                    if(std::signbit(move_distance)) {
+                        //Queenside
+                        clearCapturePiece(Square::A1);
+                        setPiece(Square::fromIndex(to_square.index() + 1).value(), Piece(PieceColor::White, PieceType::Rook));
+                    }
+                    else {
+                        //Kingside
+                        clearCapturePiece(Square::H1);
+                        setPiece(Square::fromIndex(to_square.index() - 1).value(), Piece(PieceColor::White, PieceType::Rook));
+                    }
+                }
+                //Update castling rights
+                castling_rights &= CastlingRights::Black;
+                break;
+            case PieceColor::Black :
+                if(abs(move_distance) == 2) {
+                    if(std::signbit(move_distance)) {
+                        //Queenside
+                        clearCapturePiece(Square::A8);
+                        setPiece(Square::fromIndex(to_square.index() + 1).value(), Piece(PieceColor::Black, PieceType::Rook));
+                    }
+                    else {
+                        //Kingside
+                        clearCapturePiece(Square::H8);
+                        setPiece(Square::fromIndex(to_square.index() - 1).value(), Piece(PieceColor::Black, PieceType::Rook));
+                    }
+                }
+                //Update castling rights
+                castling_rights &= CastlingRights::White;
+                break;
+        }
+
+    }
+
+    //CastlingRights rook movement
+    if(from_piece->type() == PieceType::Rook) {
+        switch(from_square.index()) {
+            //Color checking is not needed I think
+            case 0 :
+                //White queenside
+                castling_rights &= ~CastlingRights::WhiteQueenside;
+                break;
+            case 7 :
+                //White kingside
+                castling_rights &= ~CastlingRights::WhiteKingside;
+                break;
+            case 56 :
+                //Black queenside
+                castling_rights &= ~CastlingRights::BlackQueenside;
+                break;
+            case 63 :
+                //Black kingside
+                castling_rights &= ~CastlingRights::BlackKingside;
+                break;
+        }
+    }
+
+    //Rook starting position occupied, removing castlingrights if there were any
+    switch(to_square.index()) {
+        case 0 :
+            //White queenside
+            castling_rights &= ~CastlingRights::WhiteQueenside;
+            break;
+        case 7 :
+            //White kingside
+            castling_rights &= ~CastlingRights::WhiteKingside;
+            break;
+        case 56 :
+            //Black queenside
+            castling_rights &= ~CastlingRights::BlackQueenside;
+            break;
+        case 63 :
+            //Black kingside
+            castling_rights &= ~CastlingRights::BlackKingside;
+            break;
+    }
+
+    //Promotion move
+    if(promotion.has_value()) {
+        switch (promotion.value()) {
+            case PieceType::Knight :
+                setPiece(to_square, Piece(from_piece->color(), PieceType::Knight));
+                break;
+            case PieceType::Rook :
+                setPiece(to_square, Piece(from_piece->color(), PieceType::Rook));
+                break;
+            case PieceType::Bishop :
+                setPiece(to_square, Piece(from_piece->color(), PieceType::Bishop));
+                break;
+            case PieceType::Queen :
+                setPiece(to_square, Piece(from_piece->color(), PieceType::Queen));
+                break;
+            default : //never occurs with legal moves
+                break;
+        }
+    } else setPiece(to_square, from_piece);
+    //Turn changes
+    current_turn = !current_turn;
 }
 
+
+/********************************************************
+ *
+ * MOVE GENERATION
+ *
+ * *****************************************************************/
 
 //Generate pseudolegal moves for the current player
 void Board::pseudoLegalMoves(MoveVec& moves) const {
@@ -722,9 +863,9 @@ void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVe
 
     bool collided = false;
     Square::Index work_front_left_index = frontLeftIndex(bishop_index);
-    bool start_color = piecePositions.blacks[bishop_index];
+    bool start_color = piecePositions.black_squares[bishop_index];
 
-    while(!collided && !isOutOfRange(work_front_left_index) && piecePositions.blacks[work_front_left_index] == start_color) {
+    while(!collided && !isOutOfRange(work_front_left_index) && piecePositions.black_squares[work_front_left_index] == start_color) {
         std::optional<PieceColor> occupation = checkOccupation(work_front_left_index);
         Square front_left_square = Square::fromIndex(work_front_left_index).value();
         if(!occupation.has_value()) {
@@ -739,7 +880,7 @@ void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVe
     collided = false;
     Square::Index work_front_right_index = frontRightIndex(bishop_index);
 
-    while(!collided && !isOutOfRange(work_front_right_index) && piecePositions.blacks[work_front_right_index] == start_color) {
+    while(!collided && !isOutOfRange(work_front_right_index) && piecePositions.black_squares[work_front_right_index] == start_color) {
         std::optional<PieceColor> occupation = checkOccupation(work_front_right_index);
         Square front_right_square = Square::fromIndex(work_front_right_index).value();
         if(!occupation.has_value()) {
@@ -754,7 +895,7 @@ void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVe
     collided = false;
     Square::Index work_back_right_index = backRightIndex(bishop_index);
 
-    while(!collided && !isOutOfRange(work_back_right_index) && piecePositions.blacks[work_back_right_index] == start_color) {
+    while(!collided && !isOutOfRange(work_back_right_index) && piecePositions.black_squares[work_back_right_index] == start_color) {
         std::optional<PieceColor> occupation = checkOccupation(work_back_right_index);
         Square back_right_square = Square::fromIndex(work_back_right_index).value();
         if(!occupation.has_value()) {
@@ -769,7 +910,7 @@ void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVe
     collided = false;
     Square::Index work_back_left_index = backLeftIndex(bishop_index);
 
-    while(!collided && !isOutOfRange(work_back_left_index) && piecePositions.blacks[work_back_left_index] == start_color) {
+    while(!collided && !isOutOfRange(work_back_left_index) && piecePositions.black_squares[work_back_left_index] == start_color) {
         std::optional<PieceColor> occupation = checkOccupation(work_back_left_index);
         Square back_left_square = Square::fromIndex(work_back_left_index).value();
         if(!occupation.has_value()) {
