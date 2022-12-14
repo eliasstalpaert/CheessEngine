@@ -4,26 +4,29 @@
 
 
 bool PrincipalVariation::isMate() const {
-    return false;
+    return mate;
 }
 
 int PrincipalVariation::score() const {
-    return 0;
+    return eval_score;
 }
 
 std::size_t PrincipalVariation::length() const {
-    return 0;
+    return moves.size();
 }
 
 PrincipalVariation::MoveIter PrincipalVariation::begin() const {
-    return nullptr;
+    return moves.begin();
 }
 
 PrincipalVariation::MoveIter PrincipalVariation::end() const {
-    return nullptr;
+    return moves.end();
 }
 
 std::ostream& operator<<(std::ostream& os, const PrincipalVariation& pv) {
-    (void)pv;
+    for(PrincipalVariation::MoveIter iter = pv.begin(); iter != pv.end(); iter++) {
+        os << *iter << ", ";
+    }
+    os << std::endl;
     return os;
 }

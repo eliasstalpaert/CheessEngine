@@ -46,7 +46,8 @@ public:
 
     Board();
 
-    void clearCapturePiece(const Square& square);
+    bool isSquareAttacked(Square::Index index) const;
+
     void setPiece(const Square& square, const Piece::Optional& piece);
     Piece::Optional piece(const Square& square) const;
     void setTurn(PieceColor turn);
@@ -61,7 +62,12 @@ public:
     void pseudoLegalMoves(MoveVec& moves) const;
     void pseudoLegalMovesFrom(const Square& from, MoveVec& moves) const;
 
+    std::optional<PieceColor> checkedPlayer() const;
+    void setChecked(PieceColor val);
+
 private:
+
+    std::optional<PieceColor> checked_player;
 
     PiecePositions piecePositions;
 
@@ -101,6 +107,8 @@ private:
     void pseudoLegalBishopMovesFrom(Square::Index index, Board::MoveVec& moves) const;
     void pseudoLegalQueenMovesFrom(Square::Index index, Board::MoveVec& moves) const;
 
+
+    std::optional<PieceType> clearCapturePiece(const Square& square, bool capture);
 
     std::optional<PieceColor> checkOccupation(Square::Index index) const;
 };

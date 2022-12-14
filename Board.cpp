@@ -4,7 +4,7 @@
 #include <cassert>
 #include <cmath>
 
-Board::Board() : en_passant_square{std::nullopt}
+Board::Board() : checked_player{std::nullopt}, en_passant_square{std::nullopt}
 {
 }
 
@@ -51,20 +51,6 @@ void Board::setPiece(const Square& square, const Piece::Optional& piece) {
     }
 }
 
-void Board::clearCapturePiece(const Square &square) {
-    Piece::Optional occupy_piece = piece(square);
-    if(occupy_piece.has_value()) {
-        switch (occupy_piece.value().color()) {
-            case PieceColor::White :
-                colorPositions.white[square.index()] = 0;
-                break;
-            case PieceColor::Black :
-                colorPositions.black[square.index()] = 0;
-                break;
-        }
-        piecePositions.clearBit(square.index());
-    }
-}
 
 Piece::Optional Board::piece(const Square& square) const {
     Square::Index index = square.index();
@@ -112,14 +98,66 @@ Square::Optional Board::enPassantSquare() const {
     return en_passant_square;
 }
 
+/**************
+ *
+ * LEGAL MOVE GENERATION
+ *
+ * ******************/
+
+std::optional<PieceColor> Board::checkedPlayer() const {
+    return checked_player;
+}
+
+void Board::setChecked(PieceColor player) {
+    checked_player = player;
+}
+
 /********************************************************
  *
  * MOVE MAKING
  *
  * *****************************************************************/
 
+//Returns the type of piece captured in case of a capture
+std::optional<PieceType> Board::clearCapturePiece(const Square &square, bool capture) {
+    Piece::Optional occupy_piece = piece(square);
+    if(occupy_piece.has_value()) {
 
+        switch (occupy_piece->type()) {
+            case PieceType::Pawn :
+                piecePositions.pawns[square.index()] = 0;
+                break;
+            case PieceType::Knight :
+                piecePositions.knights[square.index()] = 0;
+                break;
+            case PieceType::Bishop :
+                piecePositions.bishops[square.index()] = 0;
+                break;
+            case PieceType::Rook :
+                piecePositions.rooks[square.index()] = 0;
+                break;
+            case PieceType::Queen :
+                piecePositions.queen[square.index()] = 0;
+                break;
+            case PieceType::King :
+                if(capture) return occupy_piece->type(); //early return to not clear colorpositions
+                else piecePositions.king[square.index()] = 0;
+                break;
+        }
 
+        switch (occupy_piece->color()) {
+            case PieceColor::White :
+                colorPositions.white[square.index()] = 0;
+                break;
+            case PieceColor::Black :
+                colorPositions.black[square.index()] = 0;
+                break;
+        }
+        return occupy_piece->type();
+    } else return std::nullopt;
+}
+
+//Performs the current move/capture move and if king is taken, no pieces are modified but checkmate is set
 void Board::makeMove(const Move& move) {
     Square from_square = move.from();
     Square::Index from_index = from_square.index();
@@ -129,54 +167,80 @@ void Board::makeMove(const Move& move) {
     std::optional<PieceType> promotion = move.promotion();
 
     //Capturecheck is in clearpiece
-    clearCapturePiece(to_square);
-    clearCapturePiece(from_square);
+    std::optional<PieceType> captured_piece = clearCapturePiece(to_square, true);
 
-    //Castling move
-    if(from_piece->type() == PieceType::King) {
-        signed move_distance = static_cast<signed>(to_index) - static_cast<signed>(from_index);
+    if(captured_piece.has_value() && captured_piece.value() == PieceType::King) {
+        //checkmate detected!
+        setChecked(!current_turn);
+    } else {
+        clearCapturePiece(from_square, false);
 
-        switch(current_turn) {
-            case PieceColor::White :
-                if(abs(move_distance) == 2) {
-                    if(std::signbit(move_distance)) {
-                        //Queenside
-                        clearCapturePiece(Square::A1);
-                        setPiece(Square::fromIndex(to_index + 1).value(), Piece(PieceColor::White, PieceType::Rook));
+        //Castling move: also modify rook positions
+        if(from_piece->type() == PieceType::King) {
+            signed move_distance = static_cast<signed>(to_index) - static_cast<signed>(from_index);
+
+            switch(current_turn) {
+                case PieceColor::White :
+                    if(abs(move_distance) == 2) {
+                        if(std::signbit(move_distance)) {
+                            //Queenside
+                            clearCapturePiece(Square::A1, false);
+                            setPiece(Square::fromIndex(to_index + 1).value(), Piece(PieceColor::White, PieceType::Rook));
+                        }
+                        else {
+                            //Kingside
+                            clearCapturePiece(Square::H1, false);
+                            setPiece(Square::fromIndex(to_index - 1).value(), Piece(PieceColor::White, PieceType::Rook));
+                        }
                     }
-                    else {
-                        //Kingside
-                        clearCapturePiece(Square::H1);
-                        setPiece(Square::fromIndex(to_index - 1).value(), Piece(PieceColor::White, PieceType::Rook));
+                    //Update castling rights
+                    castling_rights &= CastlingRights::Black;
+                    break;
+                case PieceColor::Black :
+                    if(abs(move_distance) == 2) {
+                        if(std::signbit(move_distance)) {
+                            //Queenside
+                            clearCapturePiece(Square::A8, false);
+                            setPiece(Square::fromIndex(to_index + 1).value(), Piece(PieceColor::Black, PieceType::Rook));
+                        }
+                        else {
+                            //Kingside
+                            clearCapturePiece(Square::H8, false);
+                            setPiece(Square::fromIndex(to_index - 1).value(), Piece(PieceColor::Black, PieceType::Rook));
+                        }
                     }
-                }
-                //Update castling rights
-                castling_rights &= CastlingRights::Black;
-                break;
-            case PieceColor::Black :
-                if(abs(move_distance) == 2) {
-                    if(std::signbit(move_distance)) {
-                        //Queenside
-                        clearCapturePiece(Square::A8);
-                        setPiece(Square::fromIndex(to_index + 1).value(), Piece(PieceColor::Black, PieceType::Rook));
-                    }
-                    else {
-                        //Kingside
-                        clearCapturePiece(Square::H8);
-                        setPiece(Square::fromIndex(to_index - 1).value(), Piece(PieceColor::Black, PieceType::Rook));
-                    }
-                }
-                //Update castling rights
-                castling_rights &= CastlingRights::White;
-                break;
+                    //Update castling rights
+                    castling_rights &= CastlingRights::White;
+                    break;
+            }
+
         }
 
-    }
+        //CastlingRights rook movement
+        if(from_piece->type() == PieceType::Rook) {
+            switch(from_index) {
+                //Color checking is not needed I think
+                case 0 :
+                    //White queenside
+                    castling_rights &= ~CastlingRights::WhiteQueenside;
+                    break;
+                case 7 :
+                    //White kingside
+                    castling_rights &= ~CastlingRights::WhiteKingside;
+                    break;
+                case 56 :
+                    //Black queenside
+                    castling_rights &= ~CastlingRights::BlackQueenside;
+                    break;
+                case 63 :
+                    //Black kingside
+                    castling_rights &= ~CastlingRights::BlackKingside;
+                    break;
+            }
+        }
 
-    //CastlingRights rook movement
-    if(from_piece->type() == PieceType::Rook) {
-        switch(from_index) {
-            //Color checking is not needed I think
+        //Rook starting position occupied, removing castlingrights if there were any
+        switch(to_index) {
             case 0 :
                 //White queenside
                 castling_rights &= ~CastlingRights::WhiteQueenside;
@@ -194,81 +258,62 @@ void Board::makeMove(const Move& move) {
                 castling_rights &= ~CastlingRights::BlackKingside;
                 break;
         }
-    }
 
-    //Rook starting position occupied, removing castlingrights if there were any
-    switch(to_index) {
-        case 0 :
-            //White queenside
-            castling_rights &= ~CastlingRights::WhiteQueenside;
-            break;
-        case 7 :
-            //White kingside
-            castling_rights &= ~CastlingRights::WhiteKingside;
-            break;
-        case 56 :
-            //Black queenside
-            castling_rights &= ~CastlingRights::BlackQueenside;
-            break;
-        case 63 :
-            //Black kingside
-            castling_rights &= ~CastlingRights::BlackKingside;
-            break;
-    }
-
-    //En passant move
-    if(from_piece->type() == PieceType::Pawn) {
-        //eps capture
-        if(en_passant_square.has_value()) {
-            if(to_square == en_passant_square){
-                clearCapturePiece(Square::fromIndex(backIndex(en_passant_square->index())).value()); //Back square from perspective of current turn
+        //En passant move
+        if(from_piece->type() == PieceType::Pawn) {
+            //eps capture
+            if(en_passant_square.has_value()) {
+                if(to_square == en_passant_square){
+                    clearCapturePiece(Square::fromIndex(backIndex(en_passant_square->index())).value(), true); //Back square from perspective of current turn
+                }
+                en_passant_square = std::nullopt;
             }
-            en_passant_square = std::nullopt;
-        }
-        //Check for new eps
-        signed move_distance = static_cast<signed>(from_index / 8) - static_cast<signed>(to_index / 8);
-        if(abs(move_distance) == 2) {
-            Square::Index left_index = leftIndex(to_index);
-            Square::Index right_index = rightIndex(to_index);
-            
-            if(left_index / 8 == to_index / 8) {
-                Piece::Optional left_piece = piece(Square::fromIndex(left_index).value());
-                if(left_piece.has_value()) {
-                    if(left_piece->type() == PieceType::Pawn && left_piece->color() == !current_turn) en_passant_square = Square::fromIndex(
-                                frontIndex(from_index));
+            //Check for new eps
+            signed move_distance = static_cast<signed>(from_index / 8) - static_cast<signed>(to_index / 8);
+            if(abs(move_distance) == 2) {
+                Square::Index left_index = leftIndex(to_index);
+                Square::Index right_index = rightIndex(to_index);
+
+                if(left_index / 8 == to_index / 8) {
+                    Piece::Optional left_piece = piece(Square::fromIndex(left_index).value());
+                    if(left_piece.has_value()) {
+                        if(left_piece->type() == PieceType::Pawn && left_piece->color() == !current_turn) en_passant_square = Square::fromIndex(
+                                    frontIndex(from_index));
+                    }
+                }
+
+                if(right_index / 8 == from_index / 8) {
+                    Piece::Optional right_piece = piece(Square::fromIndex(right_index).value());
+                    if(right_piece.has_value()) {
+                        if(right_piece->type() == PieceType::Pawn && right_piece->color() == !current_turn) en_passant_square = Square::fromIndex(
+                                    frontIndex(from_index));
+                    }
                 }
             }
 
-            if(right_index / 8 == from_index / 8) {
-                Piece::Optional right_piece = piece(Square::fromIndex(right_index).value());
-                if(right_piece.has_value()) {
-                    if(right_piece->type() == PieceType::Pawn && right_piece->color() == !current_turn) en_passant_square = Square::fromIndex(
-                                frontIndex(from_index));
-                }
+        } else if (en_passant_square.has_value()) en_passant_square = std::nullopt; //if not a pawn move and there was eps, eps is expired
+
+        //Promotion move
+        if(promotion.has_value()) {
+            switch (promotion.value()) {
+                case PieceType::Knight :
+                    setPiece(to_square, Piece(from_piece->color(), PieceType::Knight));
+                    break;
+                case PieceType::Rook :
+                    setPiece(to_square, Piece(from_piece->color(), PieceType::Rook));
+                    break;
+                case PieceType::Bishop :
+                    setPiece(to_square, Piece(from_piece->color(), PieceType::Bishop));
+                    break;
+                case PieceType::Queen :
+                    setPiece(to_square, Piece(from_piece->color(), PieceType::Queen));
+                    break;
+                default : //never occurs with legal moves
+                    break;
             }
-        }
+        } else setPiece(to_square, from_piece);
+    }
 
-    } else if (en_passant_square.has_value()) en_passant_square = std::nullopt; //if not a pawn move and there was eps, eps is expired
-
-    //Promotion move
-    if(promotion.has_value()) {
-        switch (promotion.value()) {
-            case PieceType::Knight :
-                setPiece(to_square, Piece(from_piece->color(), PieceType::Knight));
-                break;
-            case PieceType::Rook :
-                setPiece(to_square, Piece(from_piece->color(), PieceType::Rook));
-                break;
-            case PieceType::Bishop :
-                setPiece(to_square, Piece(from_piece->color(), PieceType::Bishop));
-                break;
-            case PieceType::Queen :
-                setPiece(to_square, Piece(from_piece->color(), PieceType::Queen));
-                break;
-            default : //never occurs with legal moves
-                break;
-        }
-    } else setPiece(to_square, from_piece);
     //Turn changes
     current_turn = !current_turn;
 }
@@ -280,8 +325,279 @@ void Board::makeMove(const Move& move) {
  *
  * *****************************************************************/
 
+//TODO: better bounds checking when checking sliding pieces
+
+bool Board::isSquareAttacked(Square::Index index) const {
+    signed index_rank = index / 8;
+    //sliding pieces (Q/B/R)
+    Square::Index working_index = frontIndex(index);
+    //N
+    while(!isOutOfRange(working_index)) {
+        std::optional<PieceColor> occupying = checkOccupation(working_index);
+        if(checkOccupation(working_index).has_value()) {
+            if(occupying == !current_turn) {
+                if(working_index == frontIndex(index) && piecePositions.king[working_index]) return true;
+                if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
+                else break;
+            }
+            else break;
+        }
+        else working_index = frontIndex(working_index);
+    }
+    //S
+    working_index = backIndex(index);
+    while(!isOutOfRange(working_index)) {
+        std::optional<PieceColor> occupying = checkOccupation(working_index);
+        if(checkOccupation(working_index).has_value()) {
+            if(occupying == !current_turn) {
+                if(working_index == backIndex(index) && piecePositions.king[working_index]) return true;
+                if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
+                else break;
+            }
+            else break;
+        }
+        else working_index = backIndex(working_index);
+    }
+    //E
+    working_index = rightIndex(index);
+    signed working_rank = working_index / 8;
+    while(!isOutOfRange(working_index) && ((working_rank - index_rank) == 0)) {
+        std::optional<PieceColor> occupying = checkOccupation(working_index);
+        if(checkOccupation(working_index).has_value()) {
+            if(occupying == !current_turn) {
+                if(working_index == rightIndex(index) && piecePositions.king[working_index]) return true;
+                if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
+                else break;
+            }
+            else break;
+        }
+        else {
+            working_index = rightIndex(working_index);
+            working_rank = working_index / 8;
+        }
+    }
+    //W
+    working_index = leftIndex(index);
+    working_rank = working_index / 8;
+    while(!isOutOfRange(working_index) && ((working_rank - index_rank) == 0)) {
+        std::optional<PieceColor> occupying = checkOccupation(working_index);
+        if(checkOccupation(working_index).has_value()) {
+            if(occupying == !current_turn) {
+                if(working_index == leftIndex(index) && piecePositions.king[working_index]) return true;
+                if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
+                else break;
+            }
+            else break;
+        }
+        else {
+            working_index = leftIndex(working_index);
+            working_rank = working_index / 8;
+        }
+    }
+    //NE
+    working_index = frontRightIndex(index);
+    working_rank = working_index / 8;
+    bool border_crossed = false;
+    while(!isOutOfRange(working_index) && !border_crossed) {
+        std::optional<PieceColor> occupying = checkOccupation(working_index);
+        if(checkOccupation(working_index).has_value()) {
+            if(occupying == !current_turn) {
+                if(working_index == frontRightIndex(index) && (piecePositions.pawns[working_index] || piecePositions.king[working_index])) return true;
+                if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
+                else break;
+            }
+            else break;
+        }
+        else {
+            working_index = frontRightIndex(working_index);
+            signed new_working_rank = working_index / 8;
+
+            if(abs(new_working_rank - working_rank) != 1) border_crossed = true;
+            else working_rank = new_working_rank;
+        }
+    }
+    //NW
+    working_index = frontLeftIndex(index);
+    working_rank = working_index / 8;
+    border_crossed = false;
+    while(!isOutOfRange(working_index) && !border_crossed) {
+        std::optional<PieceColor> occupying = checkOccupation(working_index);
+        if(checkOccupation(working_index).has_value()) {
+            if(occupying == !current_turn) {
+                if(working_index == frontLeftIndex(index) && (piecePositions.pawns[working_index] || piecePositions.king[working_index])) return true;
+                if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
+                else break;
+            }
+            else break;
+        }
+        else {
+            working_index = frontLeftIndex(working_index);
+            signed new_working_rank = working_index / 8;
+
+            if(abs(new_working_rank - working_rank) != 1) border_crossed = true;
+            else working_rank = new_working_rank;
+        }
+    }
+    //SE
+    working_index = backRightIndex(index);
+    working_rank = working_index / 8;
+    border_crossed = false;
+    while(!isOutOfRange(working_index) && !border_crossed) {
+        std::optional<PieceColor> occupying = checkOccupation(working_index);
+        if(checkOccupation(working_index).has_value()) {
+            if(occupying == !current_turn) {
+                if(working_index == backRightIndex(index) && piecePositions.king[working_index]) return true;
+                if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
+                else break;
+            }
+            else break;
+        }
+        else {
+            working_index = backRightIndex(working_index);
+            signed new_working_rank = working_index / 8;
+
+            if(abs(new_working_rank - working_rank) != 1) border_crossed = true;
+            else working_rank = new_working_rank;
+        }
+    }
+    //SW
+    working_index = backLeftIndex(index);
+    working_rank = working_index / 8;
+    border_crossed = false;
+    while(!isOutOfRange(working_index) && !border_crossed) {
+        std::optional<PieceColor> occupying = checkOccupation(working_index);
+        if(checkOccupation(working_index).has_value()) {
+            if(occupying == !current_turn) {
+                if(working_index == backLeftIndex(index) && piecePositions.king[working_index]) return true;
+                if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
+                else break;
+            }
+            else break;
+        }
+        else {
+            working_index = backLeftIndex(working_index);
+            signed new_working_rank = working_index / 8;
+
+            if(abs(new_working_rank - working_rank) != 1) border_crossed = true;
+            else working_rank = new_working_rank;
+        }
+    }
+    ///knights
+    //front
+    if(!isOutOfRange(frontIndex(frontIndex(index)))) {
+        Square::Index front_left_index = frontLeftIndex(frontIndex(index));
+        Square::Index front_right_index = frontRightIndex(frontIndex(index));
+
+        signed front_left_rank_distance = abs(static_cast<signed>((front_left_index / 8)) - static_cast<signed>((index / 8)));
+        signed front_right_rank_distance = abs(static_cast<signed>((front_right_index / 8)) - static_cast<signed>((index / 8)));
+
+        if(front_left_rank_distance == 2) {
+            std::optional<PieceColor> occupying = checkOccupation(front_left_index);
+            if(occupying == !current_turn) {
+                if(piecePositions.knights[front_left_index]) return true;
+            }
+        }
+
+        if(front_right_rank_distance == 2) {
+            std::optional<PieceColor> occupying = checkOccupation(front_right_index);
+            if(occupying == !current_turn) {
+                if(piecePositions.knights[front_right_index]) return true;
+            }
+        }
+
+    }
+    //back
+    if(!isOutOfRange(backIndex(backIndex(index)))) {
+        Square::Index back_left_index = backLeftIndex(backIndex(index));
+        Square::Index back_right_index = backRightIndex(backIndex(index));
+
+        signed back_left_rank_distance = abs(static_cast<signed>((back_left_index / 8)) - static_cast<signed>((index / 8)));
+        signed back_right_rank_distance = abs(static_cast<signed>((back_right_index / 8)) - static_cast<signed>((index / 8)));
+
+        if(back_left_rank_distance == 2) {
+            std::optional<PieceColor> occupying = checkOccupation(back_left_index);
+            if(occupying == !current_turn) {
+                if(piecePositions.knights[back_left_index]) return true;
+            }
+        }
+
+        if(back_right_rank_distance == 2) {
+            std::optional<PieceColor> occupying = checkOccupation(back_right_index);
+            if(occupying == !current_turn) {
+                if(piecePositions.knights[back_right_index]) return true;
+            }
+        }
+
+    }
+    //left and right
+    Square::Index left_front_index = frontLeftIndex(leftIndex(index));
+    Square::Index left_back_index = backLeftIndex(leftIndex(index));
+    Square::Index right_front_index = frontRightIndex(rightIndex(index));
+    Square::Index right_back_index = backRightIndex(rightIndex(index));
+
+
+    signed left_front_rank_distance = abs(static_cast<signed>((left_front_index / 8)) - static_cast<signed>((index / 8)));
+    signed left_back_rank_distance = abs(static_cast<signed>((left_back_index / 8)) - static_cast<signed>((index / 8)));
+    signed right_front_rank_distance = abs(static_cast<signed>((right_front_index / 8)) - static_cast<signed>((index / 8)));
+    signed right_back_rank_distance = abs(static_cast<signed>((right_back_index / 8)) - static_cast<signed>((index / 8)));
+
+    if(!isOutOfRange(left_front_index)) {
+        if(left_front_rank_distance == 1) {
+            std::optional<PieceColor> occupying = checkOccupation(left_front_index);
+            if(occupying == !current_turn) {
+                if(piecePositions.knights[left_front_index]) return true;
+            }
+        }
+    }
+
+    if(!isOutOfRange(left_back_index)) {
+        if(left_back_rank_distance == 1) {
+            std::optional<PieceColor> occupying = checkOccupation(left_back_index);
+            if(occupying == !current_turn) {
+                if(piecePositions.knights[left_back_index]) return true;
+            }
+        }
+    }
+
+    if(!isOutOfRange(right_front_index)) {
+        if(right_front_rank_distance == 1) {
+            std::optional<PieceColor> occupying = checkOccupation(right_front_index);
+            if(occupying == !current_turn) {
+                if(piecePositions.knights[right_front_index]) return true;
+            }
+        }
+    }
+
+    if(!isOutOfRange(right_back_index)) {
+        if(right_back_rank_distance == 1) {
+            std::optional<PieceColor> occupying = checkOccupation(right_back_index);
+            if(occupying == !current_turn) {
+                if(piecePositions.knights[right_back_index]) return true;
+            }
+        }
+    }
+    //en passant
+    if(piecePositions.pawns[index]) {
+        if(en_passant_square->index() == backIndex(index)) {
+            Square::Index right_index = rightIndex(index);
+            Square::Index left_index = leftIndex(index);
+            if((right_index / 8) - (index / 8) == 0) {
+                std::optional<PieceColor> occupying = checkOccupation(right_index);
+                if(occupying != current_turn && piecePositions.pawns[right_index]) return true;
+            }
+            if((left_index / 8) - (index / 8) == 0) {
+                std::optional<PieceColor> occupying = checkOccupation(left_index);
+                if(occupying != current_turn && piecePositions.pawns[left_index]) return true;
+            }
+        }
+    }
+
+    //not attacked
+    return false;
+}
+
 //Generate pseudolegal moves for the current player
-void Board::pseudoLegalMoves(MoveVec& moves) const {
+void Board::pseudoLegalMoves( MoveVec& moves ) const {
     std::bitset<64> current_turn_pieces;
 
     switch (current_turn) {
@@ -339,160 +655,6 @@ void Board::pseudoLegalMovesFrom(const Square& from,
 
 }
 
-std::optional<PieceColor> Board::checkOccupation(Square::Index index) const {
-    //TODO: Check performance impact of set/test (bound checking is safer)
-    //CAREFUL!: no index bound checking is done, so an empty return value could also mean it is out of bounds (not so safe access also, performance reasons)
-    if(colorPositions.white[index]) return PieceColor::White;
-    else if(colorPositions.black[index]) return PieceColor::Black;
-    else return std::nullopt;
-}
-
-Square::Index Board::frontIndex(Square::Index from) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return from + 8;
-        case PieceColor::Black :
-            return from - 8;
-        default :
-            return 64; //Never occurs
-    }
-}
-
-Square::Index Board::backIndex(Square::Index from) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return from - 8;
-        case PieceColor::Black :
-            return from + 8;
-        default :
-            return 64; //Never occurs
-    }
-}
-
-Square::Index Board::leftIndex(Square::Index from) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return from - 1;
-        case PieceColor::Black :
-            return from + 1;
-        default :
-            return 64; //Never occurs
-    }
-}
-
-Square::Index Board::rightIndex(Square::Index from) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return from + 1;
-        case PieceColor::Black :
-            return from - 1;
-        default :
-            return 64; //Never occurs
-    }
-}
-
-Square::Index Board::doublePushIndex(Square::Index from) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return from + 16;
-        case PieceColor::Black :
-            return from - 16;
-        default :
-            return 64; //Never occurs
-    }
-}
-
-Square::Index Board::frontLeftIndex(Square::Index from) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return from + 8 - 1;
-        case PieceColor::Black :
-            return from - 8 + 1;
-        default :
-            return 64; //Never occurs
-    }
-}
-
-Square::Index Board::backLeftIndex(Square::Index from) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return from - 8 - 1;
-        case PieceColor::Black :
-            return from + 8 + 1;
-        default :
-            return 64; //Never occurs
-    }
-}
-
-Square::Index Board::backRightIndex(Square::Index from) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return from - 8 + 1;
-        case PieceColor::Black :
-            return from + 8 - 1;
-        default :
-            return 64; //Never occurs
-    }
-}
-
-Square::Index Board::frontRightIndex(Square::Index from) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return from + 8 + 1;
-        case PieceColor::Black :
-            return from - 8 - 1;
-        default :
-            return 64; //Never occurs
-    }
-}
-
-bool Board::firstRankCheck(Square::Index index) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return (index <= 7);
-        case PieceColor::Black :
-            return (index >= 56 && index <= 63);
-        default : //Never reached
-            return false;
-    }
-}
-
-bool Board::lastRankCheck(Square::Index index) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return (index >= 56 && index <= 63);
-        case PieceColor::Black :
-            return (index <= 7);
-        default : //Never reached
-            return false;
-    }
-}
-
-bool Board::isOutOfRange(Square::Index index) const {
-    return index > 63;
-}
-
-bool Board::promotionCandidate(Square::Index index) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return index > 47;
-        case PieceColor::Black :
-            return index < 16;
-        default : //Never occurs
-            return false;
-    }
-}
-
-bool Board::doublePushCandidate(Square::Index index) const {
-    switch (current_turn) {
-        case PieceColor::White :
-            return index > 7 && index < 16;
-        case PieceColor::Black :
-            return index < 56 && index > 47;
-        default : //Never occurs
-            return false;
-    }
-}
 
 void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& moves) const {
     //TODO: code duplication
@@ -670,44 +832,50 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
 
     //Castling
     //TODO: check of destination wordt aangevallen
-    switch(current_turn) {
-        case PieceColor::White :
-            if(static_cast<bool>(castling_rights & CastlingRights::WhiteKingside)) {
-                if(!checkOccupation(right_index).has_value()) {
-                    Square::Index right_right_index = rightIndex(right_index);
-                    if(!checkOccupation(right_right_index).has_value()) {
-                        moves.push_back(Move(current_square, Square::fromIndex(right_right_index).value()));
+    if(!isSquareAttacked(king_index)) {
+        Square::Index right_right_index = rightIndex(right_index);
+        Square::Index left_left_index = leftIndex(left_index);
+        //Check rights and add move
+        switch(current_turn) {
+            case PieceColor::White :
+                if( static_cast<bool>(castling_rights & CastlingRights::WhiteKingside)) {
+                    if(!checkOccupation(right_index).has_value() && !isSquareAttacked(right_index)) {
+                        if(!checkOccupation(right_right_index).has_value() && !isSquareAttacked(right_right_index)) {
+                            //Right right index niet aangevallen
+                            moves.push_back(Move(current_square, Square::fromIndex(right_right_index).value()));
+                        }
                     }
                 }
-            }
-            if(static_cast<bool>(castling_rights & CastlingRights::WhiteQueenside)) {
-                if(!checkOccupation(left_index).has_value()) {
-                    Square::Index left_left_index = leftIndex(left_index);
-                    if(!checkOccupation(left_left_index).has_value()) {
-                        if(!checkOccupation(leftIndex(left_left_index)).has_value()) moves.push_back(Move(current_square, Square::fromIndex(left_left_index).value()));
+                if( static_cast<bool>(castling_rights & CastlingRights::WhiteQueenside)) {
+                    if(!checkOccupation(left_index).has_value() && !isSquareAttacked(left_index)) {
+                        if(!checkOccupation(left_left_index).has_value() && !isSquareAttacked(left_left_index)) {
+                            if(!checkOccupation(leftIndex(left_left_index)).has_value()) moves.push_back(Move(current_square, Square::fromIndex(left_left_index).value()));
+                        }
                     }
                 }
-            }
-            break;
-        case PieceColor::Black :
-            if(static_cast<bool>(castling_rights & CastlingRights::BlackQueenside)) {
-                if(!checkOccupation(right_index).has_value()) {
-                    Square::Index right_right_index = rightIndex(right_index);
-                    if(!checkOccupation(right_right_index).has_value()) {
-                        if(!checkOccupation(rightIndex(right_right_index)).has_value()) moves.push_back(Move(current_square, Square::fromIndex(right_right_index).value()));
+                break;
+            case PieceColor::Black :
+                if( static_cast<bool>(castling_rights & CastlingRights::BlackQueenside)) {
+                    if(!checkOccupation(right_index).has_value() && !isSquareAttacked(right_index)) {
+                        if(!checkOccupation(right_right_index).has_value() && !isSquareAttacked(right_right_index)) {
+                            if(!checkOccupation(rightIndex(right_right_index)).has_value()) moves.push_back(Move(current_square, Square::fromIndex(right_right_index).value()));
+                        }
                     }
                 }
-            }
-            if(static_cast<bool>(castling_rights & CastlingRights::BlackKingside)) {
-                if(!checkOccupation(left_index).has_value()) {
-                    Square::Index left_left_index = leftIndex(left_index);
-                    if(!checkOccupation(left_left_index).has_value()) {
-                        moves.push_back(Move(current_square, Square::fromIndex(left_left_index).value()));
+                if( static_cast<bool>(castling_rights & CastlingRights::BlackKingside)) {
+                    if(!checkOccupation(left_index).has_value()) {
+                        if(!isSquareAttacked(left_index)) {
+                            if(!checkOccupation(left_left_index).has_value()) {
+                                if(!isSquareAttacked(left_left_index)) moves.push_back(Move(current_square, Square::fromIndex(left_left_index).value()));
+                            }
+                        }
+
                     }
                 }
-            }
-            break;
+                break;
+        }
     }
+
 }
 
 void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVec &moves) const {
@@ -963,6 +1131,162 @@ void Board::pseudoLegalQueenMovesFrom(Square::Index index, Board::MoveVec &moves
     pseudoLegalRookMovesFrom(index, moves);
     pseudoLegalBishopMovesFrom(index, moves);
 }
+
+std::optional<PieceColor> Board::checkOccupation(Square::Index index) const {
+    //TODO: Check performance impact of set/test (bound checking is safer)
+    //CAREFUL!: no index bound checking is done, so an empty return value could also mean it is out of bounds (not so safe access also, performance reasons)
+    if(colorPositions.white[index]) return PieceColor::White;
+    else if(colorPositions.black[index]) return PieceColor::Black;
+    else return std::nullopt;
+}
+
+Square::Index Board::frontIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from + 8;
+        case PieceColor::Black :
+            return from - 8;
+        default :
+            return 64; //Never occurs
+    }
+}
+
+Square::Index Board::backIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from - 8;
+        case PieceColor::Black :
+            return from + 8;
+        default :
+            return 64; //Never occurs
+    }
+}
+
+Square::Index Board::leftIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from - 1;
+        case PieceColor::Black :
+            return from + 1;
+        default :
+            return 64; //Never occurs
+    }
+}
+
+Square::Index Board::rightIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from + 1;
+        case PieceColor::Black :
+            return from - 1;
+        default :
+            return 64; //Never occurs
+    }
+}
+
+Square::Index Board::doublePushIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from + 16;
+        case PieceColor::Black :
+            return from - 16;
+        default :
+            return 64; //Never occurs
+    }
+}
+
+Square::Index Board::frontLeftIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from + 8 - 1;
+        case PieceColor::Black :
+            return from - 8 + 1;
+        default :
+            return 64; //Never occurs
+    }
+}
+
+Square::Index Board::backLeftIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from - 8 - 1;
+        case PieceColor::Black :
+            return from + 8 + 1;
+        default :
+            return 64; //Never occurs
+    }
+}
+
+Square::Index Board::backRightIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from - 8 + 1;
+        case PieceColor::Black :
+            return from + 8 - 1;
+        default :
+            return 64; //Never occurs
+    }
+}
+
+Square::Index Board::frontRightIndex(Square::Index from) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return from + 8 + 1;
+        case PieceColor::Black :
+            return from - 8 - 1;
+        default :
+            return 64; //Never occurs
+    }
+}
+
+bool Board::firstRankCheck(Square::Index index) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return (index <= 7);
+        case PieceColor::Black :
+            return (index >= 56 && index <= 63);
+        default : //Never reached
+            return false;
+    }
+}
+
+bool Board::lastRankCheck(Square::Index index) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return (index >= 56 && index <= 63);
+        case PieceColor::Black :
+            return (index <= 7);
+        default : //Never reached
+            return false;
+    }
+}
+
+bool Board::isOutOfRange(Square::Index index) const {
+    return index > 63;
+}
+
+bool Board::promotionCandidate(Square::Index index) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return index > 47;
+        case PieceColor::Black :
+            return index < 16;
+        default : //Never occurs
+            return false;
+    }
+}
+
+bool Board::doublePushCandidate(Square::Index index) const {
+    switch (current_turn) {
+        case PieceColor::White :
+            return index > 7 && index < 16;
+        case PieceColor::Black :
+            return index < 56 && index > 47;
+        default : //Never occurs
+            return false;
+    }
+}
+
 
 std::ostream& operator<<(std::ostream& os, const Board& board) {
     (void)board;
