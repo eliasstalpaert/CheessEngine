@@ -12,6 +12,9 @@ class PrincipalVariation {
 public:
 
     using MoveIter = std::vector<Move>::const_iterator;
+    using MoveVec = std::vector<Move>;
+
+    PrincipalVariation(MoveVec&& moves, int32_t score);
 
     bool isMate() const;
     int score() const;
@@ -20,10 +23,11 @@ public:
     MoveIter begin() const;
     MoveIter end() const;
 
-    std::vector<Move> moves;
+
 private:
 
-    int eval_score;
+    MoveVec moves;
+    int32_t eval_score;
     bool mate;
 
 };

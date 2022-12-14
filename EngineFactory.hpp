@@ -2,7 +2,7 @@
 #define CHESS_ENGINE_ENGINEFACTORY_HPP
 
 #include "Engine.hpp"
-
+#include "CheessEngine.hpp"
 #include <memory>
 
 class EngineFactory {

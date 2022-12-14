@@ -104,6 +104,29 @@ Square::Optional Board::enPassantSquare() const {
  *
  * ******************/
 
+bool Board::isPlayerChecked() {
+    std::bitset<64> player_king;
+    switch(current_turn) {
+        case PieceColor::White :
+            player_king = colorPositions.white & piecePositions.king;
+            break;
+        case PieceColor::Black :
+            player_king = colorPositions.black & piecePositions.king;
+            break;
+    }
+    for(size_t i = 0; i < player_king.size(); i++) {
+        if(player_king[i]) {
+            bool check = isSquareAttacked(i);
+            if(check) checked_player = current_turn;
+            else if(checked_player == current_turn) checked_player = std::nullopt;
+            return check;
+        }
+    }
+
+    //never reached
+    return false;
+}
+
 std::optional<PieceColor> Board::checkedPlayer() const {
     return checked_player;
 }
@@ -576,6 +599,7 @@ bool Board::isSquareAttacked(Square::Index index) const {
             }
         }
     }
+    //TODO: en passant can probably be simplified to check if en passant square
     //en passant
     if(piecePositions.pawns[index]) {
         if(en_passant_square->index() == backIndex(index)) {

@@ -3,6 +3,10 @@
 #include <ostream>
 
 
+PrincipalVariation::PrincipalVariation(PrincipalVariation::MoveVec &&moves, int32_t score) : moves{moves}, eval_score{score} {
+    if(score == INT32_MAX) mate = true;
+}
+
 bool PrincipalVariation::isMate() const {
     return mate;
 }

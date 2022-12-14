@@ -47,6 +47,7 @@ public:
     Board();
 
     bool isSquareAttacked(Square::Index index) const;
+    bool isPlayerChecked();
 
     void setPiece(const Square& square, const Piece::Optional& piece);
     Piece::Optional piece(const Square& square) const;

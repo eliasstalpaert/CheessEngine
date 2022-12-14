@@ -36,9 +36,11 @@ private:
 
     //Hash-table linking boards to their repetition for three-fold repetition
 
-    std::tuple<Move, int> negamaxSearch(const Board::MoveVec& opponent_prev, const Board &board, unsigned int depth, int alpha, int beta, int turn) const;
+    std::tuple<PrincipalVariation::MoveVec ,int32_t> negamaxSearch(const Board &board, unsigned int depth, int32_t alpha, int32_t beta, int turn) const;
 
-    std::unique_ptr<Board::MoveVec> generateLegalMoves(const std::vector<Move>& opponent_prev, const Board &board) const;
+    Board::MoveVec generateLegalMoves(const Board &board) const;
+
+    int32_t evalPosition(const Board &board) const;
 };
 
 
