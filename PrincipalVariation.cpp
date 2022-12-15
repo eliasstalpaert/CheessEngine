@@ -4,7 +4,8 @@
 
 
 PrincipalVariation::PrincipalVariation(PrincipalVariation::MoveVec &&moves, int32_t score) : moves{moves}, eval_score{score} {
-    if(score == INT32_MAX) mate = true;
+    if(score == 100000) mate = true;
+    else mate = false;
 }
 
 bool PrincipalVariation::isMate() const {

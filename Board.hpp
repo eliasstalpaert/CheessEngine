@@ -50,8 +50,10 @@ public:
     //copy assignment
     Board& operator= (const Board& board);
 
-    bool isSquareAttacked(Square::Index index) const;
-    bool isPlayerChecked();
+    bool isSquareAttacked(PieceColor turn, Square::Index index) const;
+    bool isPlayerChecked(PieceColor turn) const;
+
+    unsigned getAmountOfPiece(PieceColor color, PieceType piece_type) const;
 
     void setPiece(const Square& square, const Piece::Optional& piece);
     Piece::Optional piece(const Square& square) const;

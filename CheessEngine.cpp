@@ -5,6 +5,8 @@
 #include "CheessEngine.hpp"
 #include <tuple>
 #include <memory>
+#include <map>
+#include <algorithm>
 
 CheessEngine::CheessEngine() : halfmove_counter{0}{
 
@@ -39,18 +41,19 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
     timeInfo.has_value();
     //Compute for each legal move the negamax value
     //If no legal moves, checkmate/stalemate
+    std::reverse(std::get<0>(negamax_pv).begin(), std::get<0>(negamax_pv).end());
     return PrincipalVariation(std::move(std::get<0>(negamax_pv)), std::get<1>(negamax_pv));
 }
 
 std::tuple<PrincipalVariation::MoveVec ,int32_t> CheessEngine::negamaxSearch(const Board &board, unsigned int depth, int32_t alpha, int32_t beta, int turn) const {
-    if(depth == 0) return std::make_tuple(PrincipalVariation::MoveVec(), evalPosition(board) * turn); //Return negamax score from current player's viewpoint
+    if(depth == 0) return std::make_tuple(PrincipalVariation::MoveVec(), evalPosition(board)); //Return negamax score from current player's viewpoint
 
     //Generate moves, if no legal moves, check for stalemate/checkmate and assign score
     Board::MoveVec possible_moves = generateLegalMoves(board);
 
     //No legal moves, checkmate or stalemate
     if(possible_moves.empty()) {
-        if(board.checkedPlayer()) return std::make_tuple(PrincipalVariation::MoveVec(),-100000); //checkmate
+        if(board.isPlayerChecked(board.turn())) return std::make_tuple(PrincipalVariation::MoveVec(),-100000); //checkmate
         else return std::make_tuple(PrincipalVariation::MoveVec(),0); //stalemate
     }
 
@@ -68,14 +71,15 @@ std::tuple<PrincipalVariation::MoveVec ,int32_t> CheessEngine::negamaxSearch(con
         copy_board.makeMove(current_move);
         copy_board.setTurn(!board.turn());
 
-        auto next_move = negamaxSearch(copy_board, depth - 1, -beta, -alpha, -turn);
-        int32_t new_score = -1 * std::get<1>(next_move);
+
+        auto opponent_score = negamaxSearch(copy_board, depth - 1, -beta, -alpha, -turn);
+        int32_t new_score = -1 * std::get<1>(opponent_score);
 
         if(new_score > alpha) {
             alpha = new_score;
             new_pv_move = true;
             best_move = current_move; //Remember potential best move belonging to new_score
-            best_pv = PrincipalVariation::MoveVec(std::get<0>(next_move)); //Remember pv that led to the score
+            best_pv = PrincipalVariation::MoveVec(std::get<0>(opponent_score)); //Remember pv that led to the score
         }
 
         if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
@@ -101,14 +105,19 @@ std::tuple<PrincipalVariation::MoveVec ,int32_t> CheessEngine::negamaxSearch(con
 Board::MoveVec CheessEngine::generateLegalMoves(const Board &board) const {
     Board::MoveVec moves;
     board.pseudoLegalMoves(moves);
+    size_t moves_removed = 0;
+    size_t moves_orig = moves.size();
 
     for(size_t i = 0; i < moves.size(); i++) {
-        Board copy_board = board;
+        Board copy_board(board);
         copy_board.makeMove(moves[i]);
-        if(bool checked = copy_board.isPlayerChecked()) {
-            checked = copy_board.isPlayerChecked();
-            if(checked) moves.erase(moves.begin() + i);
+        if(copy_board.isPlayerChecked(board.turn())) {
+            moves_removed++;
+            moves.erase(moves.begin() + i);
         }
+    }
+    if(moves_removed == moves_orig) {
+
     }
     //Check pinned pieces and eliminate them from the moves (pinned status should be removed after resolving checkmate)
     //When checkmate, detect attacking (xray attacks) of attacking piece (for potential blockers)
@@ -126,15 +135,31 @@ Board::MoveVec CheessEngine::generateLegalMoves(const Board &board) const {
  *
  * ******************/
 
+const std::map<PieceType, int32_t> piece_value { //Shannon point values
+        {PieceType::Pawn, 100},
+        {PieceType::Knight, 300},
+        {PieceType::Bishop, 300},
+        {PieceType::Rook, 500},
+        {PieceType::Queen, 900}
+};
+
 //Static scores
 //Fifty move draw using current value of halfmove counter
 //Threefold repetition check
 //TODO: Forcing a draw with special rules
 
 int32_t CheessEngine::evalPosition(const Board &board) const {
-    //Indien opponent checked is, wilt dit niet zeggen dat het checkmate of stalemate is, moet nog gecheckt worden
-    board.turn();
-    return 0;
+    int32_t score = 0;
+    score += getPositionalScore(board);
+    return score;
+}
+
+int32_t CheessEngine::getPositionalScore(const Board& board) const {
+    int32_t pos_score = 0;
+    for(const auto& piece : piece_value) {
+        pos_score += piece.second * board.getAmountOfPiece(board.turn(), piece.first);
+    }
+    return pos_score;
 }
 
 /**************
