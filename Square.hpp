@@ -8,6 +8,8 @@
 class Square {
 public:
 
+    //implicit canonical methods suffice normally
+
     using Coordinate = unsigned;
     using Index = unsigned;
     using Optional = std::optional<Square>;

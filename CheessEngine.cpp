@@ -35,8 +35,8 @@ void CheessEngine::newGame() {
 
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
     //Compute PV of given board
-    auto negamax_pv = negamaxSearch(board, 5, INT32_MIN, INT32_MAX, 1);
-    timeInfo.value();
+    auto negamax_pv = negamaxSearch(board, 5, -100000, 100000, 1);
+    timeInfo.has_value();
     //Compute for each legal move the negamax value
     //If no legal moves, checkmate/stalemate
     return PrincipalVariation(std::move(std::get<0>(negamax_pv)), std::get<1>(negamax_pv));
@@ -48,32 +48,40 @@ std::tuple<PrincipalVariation::MoveVec ,int32_t> CheessEngine::negamaxSearch(con
     //Generate moves, if no legal moves, check for stalemate/checkmate and assign score
     Board::MoveVec possible_moves = generateLegalMoves(board);
 
+    //No legal moves, checkmate or stalemate
     if(possible_moves.empty()) {
-        if(board.checkedPlayer()) return std::make_tuple(PrincipalVariation::MoveVec(),INT32_MIN); //checkmate
+        if(board.checkedPlayer()) return std::make_tuple(PrincipalVariation::MoveVec(),-100000); //checkmate
         else return std::make_tuple(PrincipalVariation::MoveVec(),0); //stalemate
     }
 
     //TODO: order moves
-    int32_t score = INT32_MIN;
-    Move* best_move = nullptr;
+    //Initialize
+    Move best_move;
+    bool new_pv_move = false;
     PrincipalVariation::MoveVec best_pv;
-    for(auto move_iter = possible_moves.begin(); move_iter != possible_moves.end(); move_iter++){
-        Board copy_board = board;
-        copy_board.makeMove(*move_iter);
-        //generate score of current node after move
-        auto next = negamaxSearch(copy_board, depth-1, -1*beta, -1*alpha, -1*turn);
-        int32_t new_score = -1 * std::get<1>(next);
-        if(new_score > score) {
-            score = new_score;
-            best_move = move_iter.base(); //Remember potential best move belonging to new_score
-            best_pv = std::get<0>(next); //Remember pv that led to the score
+
+    for(size_t move_ind = 0; move_ind < possible_moves.size(); move_ind++){
+        //create copy of board
+        Board copy_board(board);
+        Move& current_move = possible_moves[move_ind];
+
+        copy_board.makeMove(current_move);
+        copy_board.setTurn(!board.turn());
+
+        auto next_move = negamaxSearch(copy_board, depth - 1, -beta, -alpha, -turn);
+        int32_t new_score = -1 * std::get<1>(next_move);
+
+        if(new_score > alpha) {
+            alpha = new_score;
+            new_pv_move = true;
+            best_move = current_move; //Remember potential best move belonging to new_score
+            best_pv = PrincipalVariation::MoveVec(std::get<0>(next_move)); //Remember pv that led to the score
         }
-        //score = std::max(score, -1 * negamaxSearch(copy_board, depth-1, -1*beta, -1*alpha, -1*turn));
-        alpha = std::max(alpha, score);
-        if(alpha >= beta) break; //other moves shouldn't be considered
+
+        if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
     }
-    best_pv.push_back(*best_move);
-    return std::make_tuple(best_pv, score);
+    if(new_pv_move) best_pv.push_back(best_move);
+    return std::make_tuple(best_pv, alpha);
 }
 
 /**************
@@ -94,10 +102,13 @@ Board::MoveVec CheessEngine::generateLegalMoves(const Board &board) const {
     Board::MoveVec moves;
     board.pseudoLegalMoves(moves);
 
-    for(auto iter = moves.begin(); iter != moves.end(); iter++) {
+    for(size_t i = 0; i < moves.size(); i++) {
         Board copy_board = board;
-        copy_board.makeMove(*iter);
-        if(copy_board.isPlayerChecked()) moves.erase(iter);
+        copy_board.makeMove(moves[i]);
+        if(bool checked = copy_board.isPlayerChecked()) {
+            checked = copy_board.isPlayerChecked();
+            if(checked) moves.erase(moves.begin() + i);
+        }
     }
     //Check pinned pieces and eliminate them from the moves (pinned status should be removed after resolving checkmate)
     //When checkmate, detect attacking (xray attacks) of attacking piece (for potential blockers)

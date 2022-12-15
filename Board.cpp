@@ -8,6 +8,21 @@ Board::Board() : checked_player{std::nullopt}, en_passant_square{std::nullopt}
 {
 }
 
+Board::Board(const Board &board) : checked_player{board.checked_player}, piecePositions{board.piecePositions}, colorPositions{board.colorPositions}, current_turn{board.current_turn}, castling_rights{board.castling_rights}, en_passant_square{board.en_passant_square}
+{
+
+}
+
+Board &Board::operator=(const Board &board) {
+    checked_player = board.checked_player;
+    piecePositions = board.piecePositions;
+    colorPositions = board.colorPositions;
+    current_turn = board.current_turn;
+    castling_rights = board.castling_rights;
+    en_passant_square = board.en_passant_square;
+    return *this;
+}
+
 void Board::setPiece(const Square& square, const Piece::Optional& piece) {
     Square::Index square_index = square.index();
 
@@ -338,7 +353,7 @@ void Board::makeMove(const Move& move) {
     }
 
     //Turn changes
-    current_turn = !current_turn;
+    //current_turn = !current_turn;
 }
 
 
@@ -805,14 +820,14 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
         else if (front_pawn.value() != current_turn) moves.push_back(Move(current_square, front_square));
         //Front-Left
         if(front_left_rank_distance == 1) {
-            std::optional<PieceColor> front_left_pawn = checkOccupation(front_index);
+            std::optional<PieceColor> front_left_pawn = checkOccupation(front_left_index);
             Square front_left_square = Square::fromIndex(front_left_index).value();
             if(!front_left_pawn.has_value()) moves.push_back(Move(current_square, front_left_square));
             else if (front_left_pawn.value() != current_turn) moves.push_back(Move(current_square, front_left_square));
         }
         //Front-Right
         if(front_right_rank_distance == 1) {
-            std::optional<PieceColor> front_right_pawn = checkOccupation(front_index);
+            std::optional<PieceColor> front_right_pawn = checkOccupation(front_right_index);
             Square front_right_square = Square::fromIndex(front_right_index).value();
             if(!front_right_pawn.has_value()) moves.push_back(Move(current_square, front_right_square));
             else if (front_right_pawn.value() != current_turn) moves.push_back(Move(current_square, front_right_square));

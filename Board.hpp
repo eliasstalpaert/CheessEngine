@@ -45,6 +45,10 @@ public:
     using MoveVec = std::vector<Move>;
 
     Board();
+    //cctor
+    Board(const Board& board);
+    //copy assignment
+    Board& operator= (const Board& board);
 
     bool isSquareAttacked(Square::Index index) const;
     bool isPlayerChecked();
