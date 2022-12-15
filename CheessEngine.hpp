@@ -42,7 +42,7 @@ private:
 
     int32_t evalPosition(const Board &board) const;
 
-    int32_t getPositionalScore(const Board& board) const;
+    int32_t getMaterialScore(const Board& board) const;
 };
 
 

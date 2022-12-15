@@ -46,6 +46,7 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
 }
 
 std::tuple<PrincipalVariation::MoveVec ,int32_t> CheessEngine::negamaxSearch(const Board &board, unsigned int depth, int32_t alpha, int32_t beta, int turn) const {
+
     if(depth == 0) return std::make_tuple(PrincipalVariation::MoveVec(), evalPosition(board)); //Return negamax score from current player's viewpoint
 
     //Generate moves, if no legal moves, check for stalemate/checkmate and assign score
@@ -105,19 +106,16 @@ std::tuple<PrincipalVariation::MoveVec ,int32_t> CheessEngine::negamaxSearch(con
 Board::MoveVec CheessEngine::generateLegalMoves(const Board &board) const {
     Board::MoveVec moves;
     board.pseudoLegalMoves(moves);
-    size_t moves_removed = 0;
-    size_t moves_orig = moves.size();
 
-    for(size_t i = 0; i < moves.size(); i++) {
+    size_t orig_moves_size = moves.size();
+
+    for(size_t i = 0; i < orig_moves_size; i++) {
         Board copy_board(board);
         copy_board.makeMove(moves[i]);
-        if(copy_board.isPlayerChecked(board.turn())) {
-            moves_removed++;
+        PieceColor current_turn = board.turn();
+        if(copy_board.isPlayerChecked(current_turn)){
             moves.erase(moves.begin() + i);
         }
-    }
-    if(moves_removed == moves_orig) {
-
     }
     //Check pinned pieces and eliminate them from the moves (pinned status should be removed after resolving checkmate)
     //When checkmate, detect attacking (xray attacks) of attacking piece (for potential blockers)
@@ -150,14 +148,15 @@ const std::map<PieceType, int32_t> piece_value { //Shannon point values
 
 int32_t CheessEngine::evalPosition(const Board &board) const {
     int32_t score = 0;
-    score += getPositionalScore(board);
+    score += getMaterialScore(board);
     return score;
 }
 
-int32_t CheessEngine::getPositionalScore(const Board& board) const {
+int32_t CheessEngine::getMaterialScore(const Board& board) const {
     int32_t pos_score = 0;
     for(const auto& piece : piece_value) {
         pos_score += piece.second * board.getAmountOfPiece(board.turn(), piece.first);
+        pos_score -= piece.second * board.getAmountOfPiece(!board.turn(), piece.first);
     }
     return pos_score;
 }
