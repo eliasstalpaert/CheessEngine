@@ -107,15 +107,16 @@ Board::MoveVec CheessEngine::generateLegalMoves(const Board &board) const {
     Board::MoveVec moves;
     board.pseudoLegalMoves(moves);
 
-    size_t orig_moves_size = moves.size();
+    auto it = moves.begin();
 
-    for(size_t i = 0; i < orig_moves_size; i++) {
+    while(it != moves.end()) {
         Board copy_board(board);
-        copy_board.makeMove(moves[i]);
+        copy_board.makeMove(*it);
         PieceColor current_turn = board.turn();
         if(copy_board.isPlayerChecked(current_turn)){
-            moves.erase(moves.begin() + i);
+            it = moves.erase(it);
         }
+        else it++;
     }
     //Check pinned pieces and eliminate them from the moves (pinned status should be removed after resolving checkmate)
     //When checkmate, detect attacking (xray attacks) of attacking piece (for potential blockers)

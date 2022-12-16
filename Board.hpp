@@ -87,22 +87,22 @@ private:
     Square::Optional en_passant_square;
 
 
-    Square::Index frontIndex(Square::Index from) const;
-    Square::Index backIndex(Square::Index from) const;
-    Square::Index leftIndex(Square::Index from) const;
-    Square::Index rightIndex(Square::Index from) const;
-    Square::Index backLeftIndex(Square::Index from) const;
-    Square::Index backRightIndex(Square::Index from) const;
-    Square::Index frontLeftIndex(Square::Index from) const;
-    Square::Index frontRightIndex(Square::Index from) const;
+    Square::Index frontIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
+    Square::Index backIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
+    Square::Index leftIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
+    Square::Index rightIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
+    Square::Index backLeftIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
+    Square::Index backRightIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
+    Square::Index frontLeftIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
+    Square::Index frontRightIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
 
     bool promotionCandidate(Square::Index index) const;
 
     bool doublePushCandidate(Square::Index index) const;
-    Square::Index doublePushIndex(Square::Index from) const;
+    Square::Index doublePushIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt)  const;
 
-    bool firstRankCheck(Square::Index index) const;
-    bool lastRankCheck(Square::Index index) const;
+    bool firstRankCheck(Square::Index index, std::optional<PieceColor> turn = std::nullopt)  const;
+    bool lastRankCheck(Square::Index index, std::optional<PieceColor> turn = std::nullopt)  const;
     bool isOutOfRange(Square::Index index) const;
 
 

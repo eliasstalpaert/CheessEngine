@@ -395,88 +395,91 @@ void Board::makeMove(const Move& move) {
 //TODO: better bounds checking when checking sliding pieces
 
 bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
+
     signed index_rank = index / 8;
     //sliding pieces (Q/B/R)
-    Square::Index working_index = frontIndex(index);
+    Square::Index working_index = frontIndex(index, turn);
     //N
     while(!isOutOfRange(working_index)) {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == frontIndex(index) && piecePositions.king[working_index]) return true;
+                if(working_index == frontIndex(index, turn) && piecePositions.king[working_index]) return true;
                 if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
                 else break;
             }
             else break;
         }
-        else working_index = frontIndex(working_index);
+        else working_index = frontIndex(working_index, turn);
     }
     //S
-    working_index = backIndex(index);
+    working_index = backIndex(index, turn);
     while(!isOutOfRange(working_index)) {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == backIndex(index) && piecePositions.king[working_index]) return true;
+                if(working_index == backIndex(index, turn) && piecePositions.king[working_index]) return true;
                 if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
                 else break;
             }
             else break;
         }
-        else working_index = backIndex(working_index);
+        else working_index = backIndex(working_index, turn);
     }
     //E
-    working_index = rightIndex(index);
+    working_index = rightIndex(index, turn);
     signed working_rank = working_index / 8;
     while(!isOutOfRange(working_index) && ((working_rank - index_rank) == 0)) {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == rightIndex(index) && piecePositions.king[working_index]) return true;
+                if(working_index == rightIndex(index, turn) && piecePositions.king[working_index]) return true;
                 if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
                 else break;
             }
             else break;
         }
         else {
-            working_index = rightIndex(working_index);
+            working_index = rightIndex(working_index, turn);
             working_rank = working_index / 8;
         }
     }
     //W
-    working_index = leftIndex(index);
+    working_index = leftIndex(index, turn);
     working_rank = working_index / 8;
     while(!isOutOfRange(working_index) && ((working_rank - index_rank) == 0)) {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == leftIndex(index) && piecePositions.king[working_index]) return true;
+                if(working_index == leftIndex(index, turn) && piecePositions.king[working_index]) return true;
                 if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
                 else break;
             }
             else break;
         }
         else {
-            working_index = leftIndex(working_index);
+            working_index = leftIndex(working_index, turn);
             working_rank = working_index / 8;
         }
     }
     //NE
-    working_index = frontRightIndex(index);
+    working_index = frontRightIndex(index, turn);
     working_rank = working_index / 8;
     bool border_crossed = false;
+    if(abs(working_rank - index_rank) != 1) border_crossed = true;
+    else border_crossed = false;
     while(!isOutOfRange(working_index) && !border_crossed) {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == frontRightIndex(index) && (piecePositions.pawns[working_index] || piecePositions.king[working_index])) return true;
+                if(working_index == frontRightIndex(index, turn) && (piecePositions.pawns[working_index] || piecePositions.king[working_index])) return true;
                 if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
                 else break;
             }
             else break;
         }
         else {
-            working_index = frontRightIndex(working_index);
+            working_index = frontRightIndex(working_index, turn);
             signed new_working_rank = working_index / 8;
 
             if(abs(new_working_rank - working_rank) != 1) border_crossed = true;
@@ -484,21 +487,22 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         }
     }
     //NW
-    working_index = frontLeftIndex(index);
+    working_index = frontLeftIndex(index, turn);
     working_rank = working_index / 8;
-    border_crossed = false;
+    if(abs(working_rank - index_rank) != 1) border_crossed = true;
+    else border_crossed = false;
     while(!isOutOfRange(working_index) && !border_crossed) {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == frontLeftIndex(index) && (piecePositions.pawns[working_index] || piecePositions.king[working_index])) return true;
+                if(working_index == frontLeftIndex(index, turn) && (piecePositions.pawns[working_index] || piecePositions.king[working_index])) return true;
                 if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
                 else break;
             }
             else break;
         }
         else {
-            working_index = frontLeftIndex(working_index);
+            working_index = frontLeftIndex(working_index, turn);
             signed new_working_rank = working_index / 8;
 
             if(abs(new_working_rank - working_rank) != 1) border_crossed = true;
@@ -506,21 +510,22 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         }
     }
     //SE
-    working_index = backRightIndex(index);
+    working_index = backRightIndex(index, turn);
     working_rank = working_index / 8;
-    border_crossed = false;
+    if(abs(working_rank - index_rank) != 1) border_crossed = true;
+    else border_crossed = false;
     while(!isOutOfRange(working_index) && !border_crossed) {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == backRightIndex(index) && piecePositions.king[working_index]) return true;
+                if(working_index == backRightIndex(index, turn) && piecePositions.king[working_index]) return true;
                 if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
                 else break;
             }
             else break;
         }
         else {
-            working_index = backRightIndex(working_index);
+            working_index = backRightIndex(working_index, turn);
             signed new_working_rank = working_index / 8;
 
             if(abs(new_working_rank - working_rank) != 1) border_crossed = true;
@@ -528,21 +533,22 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         }
     }
     //SW
-    working_index = backLeftIndex(index);
+    working_index = backLeftIndex(index, turn);
     working_rank = working_index / 8;
-    border_crossed = false;
+    if(abs(working_rank - index_rank) != 1) border_crossed = true;
+    else border_crossed = false;
     while(!isOutOfRange(working_index) && !border_crossed) {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == backLeftIndex(index) && piecePositions.king[working_index]) return true;
+                if(working_index == backLeftIndex(index, turn) && piecePositions.king[working_index]) return true;
                 if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
                 else break;
             }
             else break;
         }
         else {
-            working_index = backLeftIndex(working_index);
+            working_index = backLeftIndex(working_index, turn);
             signed new_working_rank = working_index / 8;
 
             if(abs(new_working_rank - working_rank) != 1) border_crossed = true;
@@ -551,9 +557,9 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
     }
     ///knights
     //front
-    if(!isOutOfRange(frontIndex(frontIndex(index)))) {
-        Square::Index front_left_index = frontLeftIndex(frontIndex(index));
-        Square::Index front_right_index = frontRightIndex(frontIndex(index));
+    if(!isOutOfRange(frontIndex(frontIndex(index, turn), turn))) {
+        Square::Index front_left_index = frontLeftIndex(frontIndex(index, turn), turn);
+        Square::Index front_right_index = frontRightIndex(frontIndex(index, turn), turn);
 
         signed front_left_rank_distance = abs(static_cast<signed>((front_left_index / 8)) - static_cast<signed>((index / 8)));
         signed front_right_rank_distance = abs(static_cast<signed>((front_right_index / 8)) - static_cast<signed>((index / 8)));
@@ -574,9 +580,9 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
 
     }
     //back
-    if(!isOutOfRange(backIndex(backIndex(index)))) {
-        Square::Index back_left_index = backLeftIndex(backIndex(index));
-        Square::Index back_right_index = backRightIndex(backIndex(index));
+    if(!isOutOfRange(backIndex(backIndex(index, turn)))) {
+        Square::Index back_left_index = backLeftIndex(backIndex(index, turn), turn);
+        Square::Index back_right_index = backRightIndex(backIndex(index, turn), turn);
 
         signed back_left_rank_distance = abs(static_cast<signed>((back_left_index / 8)) - static_cast<signed>((index / 8)));
         signed back_right_rank_distance = abs(static_cast<signed>((back_right_index / 8)) - static_cast<signed>((index / 8)));
@@ -597,10 +603,10 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
 
     }
     //left and right
-    Square::Index left_front_index = frontLeftIndex(leftIndex(index));
-    Square::Index left_back_index = backLeftIndex(leftIndex(index));
-    Square::Index right_front_index = frontRightIndex(rightIndex(index));
-    Square::Index right_back_index = backRightIndex(rightIndex(index));
+    Square::Index left_front_index = frontLeftIndex(leftIndex(index, turn), turn);
+    Square::Index left_back_index = backLeftIndex(leftIndex(index, turn), turn);
+    Square::Index right_front_index = frontRightIndex(rightIndex(index, turn), turn);
+    Square::Index right_back_index = backRightIndex(rightIndex(index, turn), turn);
 
 
     signed left_front_rank_distance = abs(static_cast<signed>((left_front_index / 8)) - static_cast<signed>((index / 8)));
@@ -646,9 +652,9 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
     //TODO: en passant can probably be simplified to check if en passant square
     //en passant
     if(piecePositions.pawns[index]) {
-        if(en_passant_square->index() == backIndex(index)) {
-            Square::Index right_index = rightIndex(index);
-            Square::Index left_index = leftIndex(index);
+        if(en_passant_square->index() == backIndex(index, turn)) {
+            Square::Index right_index = rightIndex(index, turn);
+            Square::Index left_index = leftIndex(index, turn);
             if((right_index / 8) - (index / 8) == 0) {
                 std::optional<PieceColor> occupying = checkOccupation(right_index);
                 if(occupying != turn && piecePositions.pawns[right_index]) return true;
@@ -1208,8 +1214,10 @@ std::optional<PieceColor> Board::checkOccupation(Square::Index index) const {
     else return std::nullopt;
 }
 
-Square::Index Board::frontIndex(Square::Index from) const {
-    switch (current_turn) {
+Square::Index Board::frontIndex(Square::Index from, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return from + 8;
         case PieceColor::Black :
@@ -1219,8 +1227,10 @@ Square::Index Board::frontIndex(Square::Index from) const {
     }
 }
 
-Square::Index Board::backIndex(Square::Index from) const {
-    switch (current_turn) {
+Square::Index Board::backIndex(Square::Index from, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return from - 8;
         case PieceColor::Black :
@@ -1230,8 +1240,10 @@ Square::Index Board::backIndex(Square::Index from) const {
     }
 }
 
-Square::Index Board::leftIndex(Square::Index from) const {
-    switch (current_turn) {
+Square::Index Board::leftIndex(Square::Index from, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return from - 1;
         case PieceColor::Black :
@@ -1241,8 +1253,10 @@ Square::Index Board::leftIndex(Square::Index from) const {
     }
 }
 
-Square::Index Board::rightIndex(Square::Index from) const {
-    switch (current_turn) {
+Square::Index Board::rightIndex(Square::Index from, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return from + 1;
         case PieceColor::Black :
@@ -1252,8 +1266,10 @@ Square::Index Board::rightIndex(Square::Index from) const {
     }
 }
 
-Square::Index Board::doublePushIndex(Square::Index from) const {
-    switch (current_turn) {
+Square::Index Board::doublePushIndex(Square::Index from, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return from + 16;
         case PieceColor::Black :
@@ -1263,8 +1279,10 @@ Square::Index Board::doublePushIndex(Square::Index from) const {
     }
 }
 
-Square::Index Board::frontLeftIndex(Square::Index from) const {
-    switch (current_turn) {
+Square::Index Board::frontLeftIndex(Square::Index from, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return from + 8 - 1;
         case PieceColor::Black :
@@ -1274,8 +1292,10 @@ Square::Index Board::frontLeftIndex(Square::Index from) const {
     }
 }
 
-Square::Index Board::backLeftIndex(Square::Index from) const {
-    switch (current_turn) {
+Square::Index Board::backLeftIndex(Square::Index from, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return from - 8 - 1;
         case PieceColor::Black :
@@ -1285,8 +1305,10 @@ Square::Index Board::backLeftIndex(Square::Index from) const {
     }
 }
 
-Square::Index Board::backRightIndex(Square::Index from) const {
-    switch (current_turn) {
+Square::Index Board::backRightIndex(Square::Index from, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return from - 8 + 1;
         case PieceColor::Black :
@@ -1296,8 +1318,10 @@ Square::Index Board::backRightIndex(Square::Index from) const {
     }
 }
 
-Square::Index Board::frontRightIndex(Square::Index from) const {
-    switch (current_turn) {
+Square::Index Board::frontRightIndex(Square::Index from, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return from + 8 + 1;
         case PieceColor::Black :
@@ -1307,8 +1331,10 @@ Square::Index Board::frontRightIndex(Square::Index from) const {
     }
 }
 
-bool Board::firstRankCheck(Square::Index index) const {
-    switch (current_turn) {
+bool Board::firstRankCheck(Square::Index index, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return (index <= 7);
         case PieceColor::Black :
@@ -1318,8 +1344,10 @@ bool Board::firstRankCheck(Square::Index index) const {
     }
 }
 
-bool Board::lastRankCheck(Square::Index index) const {
-    switch (current_turn) {
+bool Board::lastRankCheck(Square::Index index, std::optional<PieceColor> turn) const {
+    PieceColor turn_to_use = current_turn;
+    if(turn.has_value()) turn_to_use = turn.value();
+    switch (turn_to_use) {
         case PieceColor::White :
             return (index >= 56 && index <= 63);
         case PieceColor::Black :
