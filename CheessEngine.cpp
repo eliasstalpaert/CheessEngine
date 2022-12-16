@@ -46,14 +46,14 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
     std::tuple<PrincipalVariation::MoveVec ,int32_t> negamax_result;
     for(int i = 1; i < 6; i++) {
         debug_depth = i;
-        negamax_result = negamaxSearch(board, i, -150000, 150000, 1);
+        negamax_result = negamaxSearch(board, i, -150000, 100000, 1);
         if(std::get<1>(negamax_result) == 100000) {
             std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
             return PrincipalVariation(std::move(std::get<0>(negamax_result)), std::get<1>(negamax_result));
         }
     }
     timeInfo.has_value();
-    //Time control
+    //TODO: Time control
 
     //Relative part of the time and check how much score has improved if winning, if stalemate or losing, think further
 
@@ -124,6 +124,7 @@ std::tuple<PrincipalVariation::MoveVec ,int32_t> CheessEngine::negamaxSearch(con
         }
 
         if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
+        //TODO: Time control: also break here if time is up!
     }
     if(new_pv_move) best_pv.push_back(best_move);
     return std::make_tuple(best_pv, alpha);
