@@ -35,19 +35,47 @@ void CheessEngine::newGame() {
  *
  * ******************/
 
+unsigned debug_depth;
+
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
     //Compute PV of given board
-    auto negamax_pv = negamaxSearch(board, 5, -100000, 100000, 1);
+
+
+    //Iterative deepening with depth-first negamax search
+
+    std::tuple<PrincipalVariation::MoveVec ,int32_t> negamax_result;
+    for(int i = 1; i < 6; i++) {
+        debug_depth = i;
+        negamax_result = negamaxSearch(board, i, -150000, 150000, 1);
+        if(std::get<1>(negamax_result) == 100000) {
+            std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
+            return PrincipalVariation(std::move(std::get<0>(negamax_result)), std::get<1>(negamax_result));
+        }
+    }
     timeInfo.has_value();
+    //Time control
+
+    //Relative part of the time and check how much score has improved if winning, if stalemate or losing, think further
+
     //Compute for each legal move the negamax value
     //If no legal moves, checkmate/stalemate
-    std::reverse(std::get<0>(negamax_pv).begin(), std::get<0>(negamax_pv).end());
-    return PrincipalVariation(std::move(std::get<0>(negamax_pv)), std::get<1>(negamax_pv));
+    std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
+    return PrincipalVariation(std::move(std::get<0>(negamax_result)), std::get<1>(negamax_result));
 }
 
 std::tuple<PrincipalVariation::MoveVec ,int32_t> CheessEngine::negamaxSearch(const Board &board, unsigned int depth, int32_t alpha, int32_t beta, int turn) const {
 
-    if(depth == 0) return std::make_tuple(PrincipalVariation::MoveVec(), evalPosition(board)); //Return negamax score from current player's viewpoint
+    if(depth == 0) {
+        //Generate moves, if no legal moves, check for stalemate/checkmate and assign score
+        Board::MoveVec possible_moves = generateLegalMoves(board);
+
+        //No legal moves, checkmate or stalemate
+        if(possible_moves.empty()) {
+            if(board.isPlayerChecked(board.turn())) return std::make_tuple(PrincipalVariation::MoveVec(),-100000); //checkmate
+            else return std::make_tuple(PrincipalVariation::MoveVec(),0); //stalemate
+        }
+        else return std::make_tuple(PrincipalVariation::MoveVec(), evalPosition(board)); //Return negamax score from current player's viewpoint
+    }
 
     //Generate moves, if no legal moves, check for stalemate/checkmate and assign score
     Board::MoveVec possible_moves = generateLegalMoves(board);
@@ -64,10 +92,22 @@ std::tuple<PrincipalVariation::MoveVec ,int32_t> CheessEngine::negamaxSearch(con
     bool new_pv_move = false;
     PrincipalVariation::MoveVec best_pv;
 
+
     for(size_t move_ind = 0; move_ind < possible_moves.size(); move_ind++){
         //create copy of board
         Board copy_board(board);
         Move& current_move = possible_moves[move_ind];
+/*
+        if(depth == 5 && current_move.from().index() == 18) {
+            Move kakamove(current_move);
+            kakamove.from();
+        }
+*/
+
+        if(depth == debug_depth && debug_depth == 2 && current_move.from().index() == 54) {
+            Move kakamove(current_move);
+            kakamove.from();
+        }
 
         copy_board.makeMove(current_move);
         copy_board.setTurn(!board.turn());
