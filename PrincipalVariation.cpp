@@ -3,9 +3,7 @@
 #include <ostream>
 
 
-PrincipalVariation::PrincipalVariation(PrincipalVariation::MoveVec &&moves, int32_t score) : moves{moves}, eval_score{score} {
-    if(score == 100000) mate = true;
-    else mate = false;
+PrincipalVariation::PrincipalVariation(PrincipalVariation::MoveVec &&moves, int32_t score, bool mate) : moves{moves}, eval_score{score}, mate{mate} {
 }
 
 bool PrincipalVariation::isMate() const {

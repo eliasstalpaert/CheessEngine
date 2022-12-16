@@ -35,7 +35,7 @@ add_library(cplchess_lib OBJECT
     Engine.cpp
     EngineFactory.cpp
     Uci.cpp
-        CheessEngine.cpp CheessEngine.hpp)
+    CheessEngine.cpp)
 
 target_include_directories(cplchess_lib PUBLIC .)
 

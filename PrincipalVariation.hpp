@@ -14,7 +14,7 @@ public:
     using MoveIter = std::vector<Move>::const_iterator;
     using MoveVec = std::vector<Move>;
 
-    PrincipalVariation(MoveVec&& moves, int32_t score);
+    PrincipalVariation(MoveVec&& moves, int32_t score, bool mate);
 
     bool isMate() const;
     int score() const;

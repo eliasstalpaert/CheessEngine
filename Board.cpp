@@ -349,7 +349,7 @@ void Board::makeMove(const Move& move) {
                     }
                 }
 
-                if(right_index / 8 == from_index / 8) {
+                if(right_index / 8 == to_index / 8) {
                     Piece::Optional right_piece = piece(Square::fromIndex(right_index).value());
                     if(right_piece.has_value()) {
                         if(right_piece->type() == PieceType::Pawn && right_piece->color() == !current_turn) en_passant_square = Square::fromIndex(
