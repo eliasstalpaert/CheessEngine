@@ -11,6 +11,7 @@
 
 class CheessEngine : public Engine {
 public:
+
     CheessEngine();
 
     ~CheessEngine() override = default;
@@ -36,13 +37,15 @@ private:
 
     //Hash-table linking boards to their repetition for three-fold repetition
 
-    std::tuple<PrincipalVariation::MoveVec ,int32_t> negamaxSearch(const Board &board, unsigned int depth, int32_t alpha, int32_t beta, int turn) const;
+    std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score> negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const;
 
     Board::MoveVec generateLegalMoves(const Board &board) const;
 
-    int32_t evalPosition(const Board &board) const;
+    PrincipalVariation::Score evalPosition(const Board &board) const;
 
-    int32_t getMaterialScore(const Board& board) const;
+    PrincipalVariation::Score getMaterialScore(const Board& board) const;
+
+    PrincipalVariation::Score getSpaceScore(const Board& board) const;
 };
 
 

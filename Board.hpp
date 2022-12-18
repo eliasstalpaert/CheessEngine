@@ -69,8 +69,7 @@ public:
     void pseudoLegalMoves(MoveVec& moves) const;
     void pseudoLegalMovesFrom(const Square& from, MoveVec& moves) const;
 
-    std::optional<PieceColor> checkedPlayer() const;
-    void setChecked(PieceColor val);
+    std::bitset<64> getColorPositions(PieceColor turn) const;
 
 private:
 

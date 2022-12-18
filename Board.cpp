@@ -113,7 +113,7 @@ Square::Optional Board::enPassantSquare() const {
     return en_passant_square;
 }
 
-unsigned int Board::getAmountOfPiece(PieceColor color, PieceType piece_type) const {
+unsigned Board::getAmountOfPiece(PieceColor color, PieceType piece_type) const {
     std::bitset<64> color_bits;
     switch(color) {
         case PieceColor::White :
@@ -141,6 +141,18 @@ unsigned int Board::getAmountOfPiece(PieceColor color, PieceType piece_type) con
     // never reached
     return 0;
 }
+
+std::bitset<64> Board::getColorPositions(PieceColor turn) const {
+    switch (turn) {
+        case PieceColor::White :
+            return colorPositions.white;
+        case PieceColor::Black :
+            return colorPositions.black;
+    }
+    //never reached
+    return 0;
+}
+
 
 /**************
  *
@@ -566,21 +578,21 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
 
         if(front_left_rank_distance == 2) {
             std::optional<PieceColor> occupying = checkOccupation(front_left_index);
-            if(occupying != turn) {
+            if(occupying.has_value() && occupying != turn) {
                 if(piecePositions.knights[front_left_index]) return true;
             }
         }
 
         if(front_right_rank_distance == 2) {
             std::optional<PieceColor> occupying = checkOccupation(front_right_index);
-            if(occupying != turn) {
+            if(occupying.has_value() && occupying != turn) {
                 if(piecePositions.knights[front_right_index]) return true;
             }
         }
 
     }
     //back
-    if(!isOutOfRange(backIndex(backIndex(index, turn)))) {
+    if(!isOutOfRange(backIndex(backIndex(index, turn), turn))) {
         Square::Index back_left_index = backLeftIndex(backIndex(index, turn), turn);
         Square::Index back_right_index = backRightIndex(backIndex(index, turn), turn);
 
@@ -589,14 +601,14 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
 
         if(back_left_rank_distance == 2) {
             std::optional<PieceColor> occupying = checkOccupation(back_left_index);
-            if(occupying != turn) {
+            if(occupying.has_value() && occupying != turn) {
                 if(piecePositions.knights[back_left_index]) return true;
             }
         }
 
         if(back_right_rank_distance == 2) {
             std::optional<PieceColor> occupying = checkOccupation(back_right_index);
-            if(occupying != turn) {
+            if(occupying.has_value() && occupying != turn) {
                 if(piecePositions.knights[back_right_index]) return true;
             }
         }
@@ -617,7 +629,7 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
     if(!isOutOfRange(left_front_index)) {
         if(left_front_rank_distance == 1) {
             std::optional<PieceColor> occupying = checkOccupation(left_front_index);
-            if(occupying != turn) {
+            if(occupying.has_value() && occupying != turn) {
                 if(piecePositions.knights[left_front_index]) return true;
             }
         }
@@ -626,7 +638,7 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
     if(!isOutOfRange(left_back_index)) {
         if(left_back_rank_distance == 1) {
             std::optional<PieceColor> occupying = checkOccupation(left_back_index);
-            if(occupying != turn) {
+            if(occupying.has_value() && occupying != turn) {
                 if(piecePositions.knights[left_back_index]) return true;
             }
         }
@@ -635,7 +647,7 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
     if(!isOutOfRange(right_front_index)) {
         if(right_front_rank_distance == 1) {
             std::optional<PieceColor> occupying = checkOccupation(right_front_index);
-            if(occupying != turn) {
+            if(occupying.has_value() && occupying != turn) {
                 if(piecePositions.knights[right_front_index]) return true;
             }
         }
@@ -644,7 +656,7 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
     if(!isOutOfRange(right_back_index)) {
         if(right_back_rank_distance == 1) {
             std::optional<PieceColor> occupying = checkOccupation(right_back_index);
-            if(occupying != turn) {
+            if(occupying.has_value() && occupying != turn) {
                 if(piecePositions.knights[right_back_index]) return true;
             }
         }
@@ -657,11 +669,11 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
             Square::Index left_index = leftIndex(index, turn);
             if((right_index / 8) - (index / 8) == 0) {
                 std::optional<PieceColor> occupying = checkOccupation(right_index);
-                if(occupying != turn && piecePositions.pawns[right_index]) return true;
+                if(occupying.has_value() && occupying != turn && piecePositions.pawns[right_index]) return true;
             }
             if((left_index / 8) - (index / 8) == 0) {
                 std::optional<PieceColor> occupying = checkOccupation(left_index);
-                if(occupying != turn && piecePositions.pawns[left_index]) return true;
+                if(occupying.has_value() && occupying != turn && piecePositions.pawns[left_index]) return true;
             }
         }
     }
