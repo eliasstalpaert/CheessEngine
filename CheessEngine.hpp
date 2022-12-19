@@ -12,15 +12,21 @@
 class CheessEngine : public Engine {
 public:
 
+    using SearchResult = std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score>;
+
     CheessEngine();
 
     ~CheessEngine() override = default;
+
+
 
     std::string name() const override;
 
     std::string version() const override;
 
     std::string author() const override;
+
+
 
     void newGame() override;
 
@@ -32,12 +38,12 @@ public:
 
 private:
 
-    //Fifty-move repetition rule
+    //TODO: Fifty-move repetition rule
     unsigned halfmove_counter;
 
-    //Hash-table linking boards to their repetition for three-fold repetition
+    //TODO: Hash-table linking boards to their repetition for three-fold repetition
 
-    std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score> negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const;
+    SearchResult negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const;
 
     Board::MoveVec generateLegalMoves(const Board &board) const;
 

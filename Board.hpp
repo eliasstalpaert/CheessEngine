@@ -12,7 +12,9 @@
 #include <bitset>
 
 
-//Default ctor bitset sets all bits to 0
+//bitset: Default ctor bitset sets all bits to 0
+
+//Positions of the chess pieces independent of color
 struct PiecePositions {
     std::bitset<64> pawns;
     std::bitset<64> knights;
@@ -21,6 +23,7 @@ struct PiecePositions {
     std::bitset<64> queen;
     std::bitset<64> king;
 
+    //All black squares on the board to aid calculation
     std::bitset<64> black_squares = 0xAA55AA55AA55AA55;
 
     void clearBit(Square::Index index) {
@@ -50,11 +53,6 @@ public:
     //copy assignment
     Board& operator= (const Board& board);
 
-    bool isSquareAttacked(PieceColor turn, Square::Index index) const;
-    bool isPlayerChecked(PieceColor turn) const;
-
-    unsigned getAmountOfPiece(PieceColor color, PieceType piece_type) const;
-
     void setPiece(const Square& square, const Piece::Optional& piece);
     Piece::Optional piece(const Square& square) const;
     void setTurn(PieceColor turn);
@@ -63,13 +61,17 @@ public:
     CastlingRights castlingRights() const;
     void setEnPassantSquare(const Square::Optional& square);
     Square::Optional enPassantSquare() const;
+    std::bitset<64> getColorPositions(PieceColor turn) const;
+
+    bool isSquareAttacked(PieceColor turn, Square::Index index) const;
+    bool isPlayerChecked(PieceColor turn) const;
+
+    unsigned getAmountOfPiece(PieceColor color, PieceType piece_type) const;
 
     void makeMove(const Move& move);
 
     void pseudoLegalMoves(MoveVec& moves) const;
     void pseudoLegalMovesFrom(const Square& from, MoveVec& moves) const;
-
-    std::bitset<64> getColorPositions(PieceColor turn) const;
 
 private:
 

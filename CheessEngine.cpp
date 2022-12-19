@@ -36,12 +36,9 @@ void CheessEngine::newGame() {
  * ******************/
 
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
-    //Compute PV of given board
-
-
     //Iterative deepening with depth-first negamax search
-
-    std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score> negamax_result;
+    //TODO: Time control
+    SearchResult negamax_result;
     for(int i = 0; i < 6; i++) {
         negamax_result = negamaxSearch(board, i, -150000, 100000, 1);
         if(abs(std::get<1>(negamax_result)) == 100000) {
@@ -49,18 +46,14 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
             return PrincipalVariation(std::move(std::get<0>(negamax_result)), i, true);
         }
     }
+
     timeInfo.has_value();
-    //TODO: Time control
 
-    //Relative part of the time and check how much score has improved if winning, if stalemate or losing, think further
-
-    //Compute for each legal move the negamax value
-    //If no legal moves, checkmate/stalemate
     std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
     return PrincipalVariation(std::move(std::get<0>(negamax_result)), std::get<1>(negamax_result), false);
 }
 
-std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score> CheessEngine::negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const {
+CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const {
 
     //Generate moves, if no legal moves, check for stalemate/checkmate and assign score
     Board::MoveVec possible_moves = generateLegalMoves(board);
@@ -166,7 +159,9 @@ PrincipalVariation::Score CheessEngine::evalPosition(const Board &board) const {
 PrincipalVariation::Score CheessEngine::getMaterialScore(const Board& board) const {
     PrincipalVariation::Score pos_score = 0;
     for(const auto& piece : piece_value) {
+        //Current turn's pieces
         pos_score += piece.second * board.getAmountOfPiece(board.turn(), piece.first);
+        //Current opponent's pieces
         pos_score -= piece.second * board.getAmountOfPiece(!board.turn(), piece.first);
     }
     return pos_score;
@@ -174,24 +169,25 @@ PrincipalVariation::Score CheessEngine::getMaterialScore(const Board& board) con
 
 PrincipalVariation::Score CheessEngine::getSpaceScore(const Board &board) const {
 
-    std::bitset<64> black_mask = 4294967295;
-    std::bitset<64> white_mask(black_mask);
-    white_mask.flip();
+    std::bitset<64> white_half = 4294967295;
+    std::bitset<64> black_half(white_half);
+    black_half.flip();
+
     auto positions = board.getColorPositions(board.turn());
     auto opponent_positions = board.getColorPositions(!board.turn());
 
-    std::bitset<64> center_mask = 103481868288;
+    std::bitset<64> center_mask = 103481868288; //D4/E4/D5/E5
 
     PrincipalVariation::Score center_score = ((positions & center_mask).count() * square_value * 5) - ((opponent_positions & center_mask).count() * square_value * 5);
 
     switch (board.turn()) {
         case PieceColor::White :
-            positions &= white_mask;
-            opponent_positions &= black_mask;
+            positions &= black_half;
+            opponent_positions &= white_half;
             break;
         case PieceColor::Black :
-            positions &= black_mask;
-            opponent_positions &= white_mask;
+            positions &= white_half;
+            opponent_positions &= black_half;
             break;
     }
 
