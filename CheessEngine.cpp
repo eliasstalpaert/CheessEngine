@@ -78,8 +78,8 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
             }
 
             //Check for small difference
-            if(score >= 0 && score > std::get<1>(negamax_result)) {
-                if((score - std::get<1>(negamax_result)) < SCORE_THRESHOLD) {
+            if(score >= 0 && current_result.has_value() && score > std::get<1>(current_result.value())) {
+                if((score - std::get<1>(current_result.value())) < SCORE_THRESHOLD) {
                     current_result = negamax_result;
                     break;
                 }
