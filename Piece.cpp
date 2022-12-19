@@ -87,9 +87,10 @@ PieceColor operator!(PieceColor color) {
             return PieceColor::Black;
         case PieceColor::Black:
             return PieceColor::White;
-        default:
-            return PieceColor::White; //TODO: can this be omitted?
     }
+
+    //Never occurs in valid situations
+    return PieceColor::White;
 }
 
 char pieceTypeToChar(PieceType type) {

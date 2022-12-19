@@ -34,7 +34,6 @@ Move::Optional Move::fromUci(const std::string& uci) {
        if(!promotion_piece.has_value()) return std::nullopt;
        PieceType promotion_type = promotion_piece.value().type();
        if(promotion_type == PieceType::Pawn || promotion_type == PieceType::King) return std::nullopt; //Promotion check
-       //TODO: Positional check
        return Move(from.value(), to.value(), promotion_type);
     }
     else return Move(from.value(), to.value());

@@ -182,15 +182,8 @@ bool Board::isPlayerChecked(PieceColor turn) const {
     //never reached
     return false;
 }
-/*
-std::optional<PieceColor> Board::checkedPlayer() const {
-    return checked_player;
-}
 
-void Board::setChecked(PieceColor player) {
-    checked_player = player;
-}
-*/
+
 /********************************************************
  *
  * MOVE MAKING
@@ -249,12 +242,11 @@ void Board::makeMove(const Move& move) {
     std::optional<PieceType> captured_piece = clearCapturePiece(to_square, true);
 
     if(captured_piece.has_value() && captured_piece.value() == PieceType::King) {
-        //checkmate detected!
-        //setChecked(!current_turn);
+        //DO NOTHING
     } else {
         clearCapturePiece(from_square, false);
 
-        //Castling move: also modify rook positions
+        //Castling move: also moves the rook!
         if(from_piece->type() == PieceType::King) {
             signed move_distance = static_cast<signed>(to_index) - static_cast<signed>(from_index);
 
@@ -295,10 +287,10 @@ void Board::makeMove(const Move& move) {
 
         }
 
-        //CastlingRights rook movement
+        //CastlingRights change upon Rook movement
         if(from_piece->type() == PieceType::Rook) {
             switch(from_index) {
-                //Color checking is not needed I think
+                //Color checking is not needed
                 case 0 :
                     //White queenside
                     castling_rights &= ~CastlingRights::WhiteQueenside;
@@ -318,7 +310,7 @@ void Board::makeMove(const Move& move) {
             }
         }
 
-        //Rook starting position occupied, removing castlingrights if there were any
+        //CastlingRights change upon Rook capture/occupation
         switch(to_index) {
             case 0 :
                 //White queenside
@@ -338,7 +330,7 @@ void Board::makeMove(const Move& move) {
                 break;
         }
 
-        //En passant move
+        //Pawn en passant move
         if(from_piece->type() == PieceType::Pawn) {
             //eps capture
             if(en_passant_square.has_value()) {
@@ -372,7 +364,7 @@ void Board::makeMove(const Move& move) {
 
         } else if (en_passant_square.has_value()) en_passant_square = std::nullopt; //if not a pawn move and there was eps, eps is expired
 
-        //Promotion move
+        //Pawn promotion move
         if(promotion.has_value()) {
             switch (promotion.value()) {
                 case PieceType::Knight :
@@ -404,11 +396,12 @@ void Board::makeMove(const Move& move) {
  *
  * *****************************************************************/
 
-//TODO: better bounds checking when checking sliding pieces
-
 bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
 
     signed index_rank = index / 8;
+
+    //bool index_color = square_color[index];
+
     //sliding pieces (Q/B/R)
     Square::Index working_index = frontIndex(index, turn);
     //N
@@ -776,12 +769,10 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
     Square::Index front_left_index = frontLeftIndex(pawn_index);
     Square::Index front_right_index = frontRightIndex(pawn_index);
 
-    //TODO: replace distance with black/white square change check
-    signed front_left_rank_distance = abs(static_cast<signed>((front_left_index / 8)) - static_cast<signed>((pawn_index / 8)));
-    signed front_right_rank_distance = abs(static_cast<signed>((front_right_index / 8)) - static_cast<signed>((pawn_index / 8)));
+    bool diag_color = square_color[pawn_index];
 
     //Front left captures check
-    if(front_left_rank_distance == 1) {
+    if(square_color[front_left_index] == diag_color) {
         std::optional<PieceColor> front_left_pawn = checkOccupation(front_left_index);
 
         if(front_left_pawn.has_value() && current_turn != front_left_pawn.value()) { //Capture possible
@@ -803,7 +794,7 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
     }
 
     //Front right captures check
-    if(front_right_rank_distance == 1) {
+    if(square_color[front_right_index] == diag_color) {
         std::optional<PieceColor> front_right_pawn = checkOccupation(front_right_index);
 
         if(front_right_pawn.has_value() && current_turn != front_right_pawn.value()) { //Capture possible
@@ -828,10 +819,10 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
     if(en_passant_square.has_value()) {
         Square::Index en_passant_index = en_passant_square->index();
 
-        if(front_right_index == en_passant_index && front_right_rank_distance == 1) {
+        if(front_right_index == en_passant_index && square_color[front_right_index] == diag_color) {
             moves.push_back(Move(current_square, Square::fromIndex(front_right_index).value()));
         }
-        if (front_left_index == en_passant_index && front_left_rank_distance == 1) {
+        if (front_left_index == en_passant_index && square_color[front_left_index] == diag_color) {
             moves.push_back(Move(current_square, Square::fromIndex(front_left_index).value()));
         }
 
@@ -840,7 +831,6 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
 }
 
 void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &moves) const {
-    //TODO: more efficient position check (border cases) for example using comparisons
     //TODO: code duplication (maybe sth with giving directions to check)
     Square current_square = Square::fromIndex(king_index).value();
 
@@ -851,12 +841,7 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
     Square::Index left_index = leftIndex(king_index);
     Square::Index right_index = rightIndex(king_index);
 
-    signed front_left_rank_distance = abs(static_cast<signed>((front_left_index / 8)) - static_cast<signed>((king_index / 8)));
-    signed front_right_rank_distance = abs(static_cast<signed>((front_right_index / 8)) - static_cast<signed>((king_index / 8)));
-    signed back_left_rank_distance = abs(static_cast<signed>((front_left_index / 8)) - static_cast<signed>((king_index / 8)));
-    signed back_right_rank_distance = abs(static_cast<signed>((front_right_index / 8)) - static_cast<signed>((king_index / 8)));
-    signed left_rank_distance = abs(static_cast<signed>((left_index / 8)) - static_cast<signed>((king_index / 8)));
-    signed right_rank_distance = abs(static_cast<signed>((right_index / 8)) - static_cast<signed>((king_index / 8)));
+    bool diag_color = square_color[king_index];
 
     if(!lastRankCheck(king_index)) {
         //Front
@@ -866,14 +851,14 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
         if(!front_pawn.has_value()) moves.push_back(Move(current_square, front_square));
         else if (front_pawn.value() != current_turn) moves.push_back(Move(current_square, front_square));
         //Front-Left
-        if(front_left_rank_distance == 1) {
+        if(square_color[front_left_index] == diag_color) {
             std::optional<PieceColor> front_left_pawn = checkOccupation(front_left_index);
             Square front_left_square = Square::fromIndex(front_left_index).value();
             if(!front_left_pawn.has_value()) moves.push_back(Move(current_square, front_left_square));
             else if (front_left_pawn.value() != current_turn) moves.push_back(Move(current_square, front_left_square));
         }
         //Front-Right
-        if(front_right_rank_distance == 1) {
+        if(square_color[front_right_index] == diag_color) {
             std::optional<PieceColor> front_right_pawn = checkOccupation(front_right_index);
             Square front_right_square = Square::fromIndex(front_right_index).value();
             if(!front_right_pawn.has_value()) moves.push_back(Move(current_square, front_right_square));
@@ -888,14 +873,14 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
         if(!back_pawn.has_value()) moves.push_back(Move(current_square, back_square));
         else if (back_pawn.value() != current_turn) moves.push_back(Move(current_square, back_square));
         //back-Left
-        if(back_left_rank_distance == 1) {
+        if(square_color[back_left_index] == diag_color) {
             std::optional<PieceColor> back_left_pawn = checkOccupation(back_left_index);
             Square back_left_square = Square::fromIndex(back_left_index).value();
             if(!back_left_pawn.has_value()) moves.push_back(Move(current_square, back_left_square));
             else if (back_left_pawn.value() != current_turn) moves.push_back(Move(current_square, back_left_square));
         }
         //back-Right
-        if(back_right_rank_distance == 1) {
+        if(square_color[back_right_index] == diag_color) {
             std::optional<PieceColor> back_right_pawn = checkOccupation(back_right_index);
             Square back_right_square = Square::fromIndex(back_right_index).value();
             if(!back_right_pawn.has_value()) moves.push_back(Move(current_square, back_right_square));
@@ -903,31 +888,29 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
         }
     }
 
-    if(left_rank_distance == 0) {
+    if(square_color[left_index] != diag_color) {
         std::optional<PieceColor> left_pawn = checkOccupation(left_index);
         Square left_square = Square::fromIndex(left_index).value();
         if(!left_pawn.has_value()) moves.push_back(Move(current_square, left_square));
         else if (left_pawn.value() != current_turn) moves.push_back(Move(current_square, left_square));
     }
-    if(right_rank_distance == 0) {
+    if(square_color[right_index] != diag_color) {
         std::optional<PieceColor> right_pawn = checkOccupation(right_index);
         Square right_square = Square::fromIndex(right_index).value();
         if(!right_pawn.has_value()) moves.push_back(Move(current_square, right_square));
         else if (right_pawn.value() != current_turn) moves.push_back(Move(current_square, right_square));
     }
 
-    //Castling
-    //TODO: check of destination wordt aangevallen
+    //Castling moves
     if(!isSquareAttacked(current_turn, king_index)) {
         Square::Index right_right_index = rightIndex(right_index);
         Square::Index left_left_index = leftIndex(left_index);
-        //Check rights and add move
+        //Check rights and add move, bounds checking not needed if rights are present
         switch(current_turn) {
             case PieceColor::White :
                 if( static_cast<bool>(castling_rights & CastlingRights::WhiteKingside)) {
                     if(!checkOccupation(right_index).has_value() && !isSquareAttacked(PieceColor::White, right_index)) {
                         if(!checkOccupation(right_right_index).has_value() && !isSquareAttacked(PieceColor::White, right_right_index)) {
-                            //Right right index niet aangevallen
                             moves.push_back(Move(current_square, Square::fromIndex(right_right_index).value()));
                         }
                     }
@@ -935,6 +918,7 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
                 if( static_cast<bool>(castling_rights & CastlingRights::WhiteQueenside)) {
                     if(!checkOccupation(left_index).has_value() && !isSquareAttacked(PieceColor::White, left_index)) {
                         if(!checkOccupation(left_left_index).has_value() && !isSquareAttacked(PieceColor::White, left_left_index)) {
+                            //Extra queenside check due to bigger distance
                             if(!checkOccupation(leftIndex(left_left_index)).has_value()) moves.push_back(Move(current_square, Square::fromIndex(left_left_index).value()));
                         }
                     }
@@ -944,18 +928,16 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
                 if( static_cast<bool>(castling_rights & CastlingRights::BlackQueenside)) {
                     if(!checkOccupation(right_index).has_value() && !isSquareAttacked(PieceColor::Black, right_index)) {
                         if(!checkOccupation(right_right_index).has_value() && !isSquareAttacked(PieceColor::Black, right_right_index)) {
+                            //Extra queenside check due to bigger distance
                             if(!checkOccupation(rightIndex(right_right_index)).has_value()) moves.push_back(Move(current_square, Square::fromIndex(right_right_index).value()));
                         }
                     }
                 }
                 if( static_cast<bool>(castling_rights & CastlingRights::BlackKingside)) {
-                    if(!checkOccupation(left_index).has_value()) {
-                        if(!isSquareAttacked(PieceColor::Black, left_index)) {
-                            if(!checkOccupation(left_left_index).has_value()) {
-                                if(!isSquareAttacked(PieceColor::Black, left_left_index)) moves.push_back(Move(current_square, Square::fromIndex(left_left_index).value()));
-                            }
+                    if(!checkOccupation(left_index).has_value() && !isSquareAttacked(PieceColor::Black, left_index)) {
+                        if(!checkOccupation(left_left_index).has_value() && !isSquareAttacked(PieceColor::Black, left_left_index)) {
+                            moves.push_back(Move(current_square, Square::fromIndex(left_left_index).value()));
                         }
-
                     }
                 }
                 break;
@@ -967,16 +949,14 @@ void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &m
 void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVec &moves) const {
 
     Square current_square = Square::fromIndex(knight_index).value();
+    bool knight_square_color = square_color[knight_index];
 
     //front knight
     if(!isOutOfRange(frontIndex(frontIndex(knight_index)))) {
         Square::Index front_left_index = frontLeftIndex(frontIndex(knight_index));
         Square::Index front_right_index = frontRightIndex(frontIndex(knight_index));
 
-        signed front_left_rank_distance = abs(static_cast<signed>((front_left_index / 8)) - static_cast<signed>((knight_index / 8)));
-        signed front_right_rank_distance = abs(static_cast<signed>((front_right_index / 8)) - static_cast<signed>((knight_index / 8)));
-
-        if(front_left_rank_distance == 2) {
+        if(square_color[front_left_index] != knight_square_color) {
             std::optional<PieceColor> front_left_pawn = checkOccupation(front_left_index);
             Square front_left_square = Square::fromIndex(front_left_index).value();
             if(!front_left_pawn.has_value()) { //Capture possible
@@ -986,7 +966,7 @@ void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVe
             }
         }
 
-        if(front_right_rank_distance == 2) {
+        if(square_color[front_right_index] != knight_square_color) {
             std::optional<PieceColor> front_right_pawn = checkOccupation(front_right_index);
             Square front_right_square = Square::fromIndex(front_right_index).value();
             if(!front_right_pawn.has_value()) { //Capture possible
@@ -1002,10 +982,7 @@ void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVe
         Square::Index back_left_index = backLeftIndex(backIndex(knight_index));
         Square::Index back_right_index = backRightIndex(backIndex(knight_index));
 
-        signed back_left_rank_distance = abs(static_cast<signed>((back_left_index / 8)) - static_cast<signed>((knight_index / 8)));
-        signed back_right_rank_distance = abs(static_cast<signed>((back_right_index / 8)) - static_cast<signed>((knight_index / 8)));
-
-        if(back_left_rank_distance == 2) {
+        if(square_color[back_left_index] != knight_square_color) {
             std::optional<PieceColor> back_left_pawn = checkOccupation(back_left_index);
             Square back_left_square = Square::fromIndex(back_left_index).value();
             if(!back_left_pawn.has_value()) { //Capture possible
@@ -1015,7 +992,7 @@ void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVe
             }
         }
 
-        if(back_right_rank_distance == 2) {
+        if(square_color[back_right_index] != knight_square_color) {
             std::optional<PieceColor> back_right_pawn = checkOccupation(back_right_index);
             Square back_right_square = Square::fromIndex(back_right_index).value();
             if(!back_right_pawn.has_value()) { //Capture possible
@@ -1032,14 +1009,8 @@ void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVe
     Square::Index right_front_index = frontRightIndex(rightIndex(knight_index));
     Square::Index right_back_index = backRightIndex(rightIndex(knight_index));
 
-
-    signed left_front_rank_distance = abs(static_cast<signed>((left_front_index / 8)) - static_cast<signed>((knight_index / 8)));
-    signed left_back_rank_distance = abs(static_cast<signed>((left_back_index / 8)) - static_cast<signed>((knight_index / 8)));
-    signed right_front_rank_distance = abs(static_cast<signed>((right_front_index / 8)) - static_cast<signed>((knight_index / 8)));
-    signed right_back_rank_distance = abs(static_cast<signed>((right_back_index / 8)) - static_cast<signed>((knight_index / 8)));
-
     if(!isOutOfRange(left_front_index)) {
-        if(left_front_rank_distance == 1) {
+        if(square_color[left_front_index] != knight_square_color) {
             std::optional<PieceColor> left_front_pawn = checkOccupation(left_front_index);
             Square left_front_square = Square::fromIndex(left_front_index).value();
             if(!left_front_pawn.has_value()) { //Capture possible
@@ -1051,7 +1022,7 @@ void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVe
     }
 
     if(!isOutOfRange(left_back_index)) {
-        if(left_back_rank_distance == 1) {
+        if(square_color[left_back_index] != knight_square_color) {
             std::optional<PieceColor> left_back_pawn = checkOccupation(left_back_index);
             Square left_back_square = Square::fromIndex(left_back_index).value();
             if(!left_back_pawn.has_value()) { //Capture possible
@@ -1063,7 +1034,7 @@ void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVe
     }
 
     if(!isOutOfRange(right_front_index)) {
-        if(right_front_rank_distance == 1) {
+        if(square_color[right_front_index] != knight_square_color) {
             std::optional<PieceColor> right_front_pawn = checkOccupation(right_front_index);
             Square right_front_square = Square::fromIndex(right_front_index).value();
             if(!right_front_pawn.has_value()) { //Capture possible
@@ -1075,7 +1046,7 @@ void Board::pseudoLegalKnightMovesFrom(Square::Index knight_index, Board::MoveVe
     }
 
     if(!isOutOfRange(right_back_index)) {
-        if(right_back_rank_distance == 1) {
+        if(square_color[right_back_index] != knight_square_color) {
             std::optional<PieceColor> right_back_pawn = checkOccupation(right_back_index);
             Square right_back_square = Square::fromIndex(right_back_index).value();
             if(!right_back_pawn.has_value()) { //Capture possible
@@ -1153,9 +1124,9 @@ void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVe
 
     bool collided = false;
     Square::Index work_front_left_index = frontLeftIndex(bishop_index);
-    bool start_color = piecePositions.black_squares[bishop_index];
+    bool start_color = square_color[bishop_index];
 
-    while(!collided && !isOutOfRange(work_front_left_index) && piecePositions.black_squares[work_front_left_index] == start_color) {
+    while(!collided && !isOutOfRange(work_front_left_index) && square_color[work_front_left_index] == start_color) {
         std::optional<PieceColor> occupation = checkOccupation(work_front_left_index);
         Square front_left_square = Square::fromIndex(work_front_left_index).value();
         if(!occupation.has_value()) {
@@ -1170,7 +1141,7 @@ void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVe
     collided = false;
     Square::Index work_front_right_index = frontRightIndex(bishop_index);
 
-    while(!collided && !isOutOfRange(work_front_right_index) && piecePositions.black_squares[work_front_right_index] == start_color) {
+    while(!collided && !isOutOfRange(work_front_right_index) && square_color[work_front_right_index] == start_color) {
         std::optional<PieceColor> occupation = checkOccupation(work_front_right_index);
         Square front_right_square = Square::fromIndex(work_front_right_index).value();
         if(!occupation.has_value()) {
@@ -1185,7 +1156,7 @@ void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVe
     collided = false;
     Square::Index work_back_right_index = backRightIndex(bishop_index);
 
-    while(!collided && !isOutOfRange(work_back_right_index) && piecePositions.black_squares[work_back_right_index] == start_color) {
+    while(!collided && !isOutOfRange(work_back_right_index) && square_color[work_back_right_index] == start_color) {
         std::optional<PieceColor> occupation = checkOccupation(work_back_right_index);
         Square back_right_square = Square::fromIndex(work_back_right_index).value();
         if(!occupation.has_value()) {
@@ -1200,7 +1171,7 @@ void Board::pseudoLegalBishopMovesFrom(Square::Index bishop_index, Board::MoveVe
     collided = false;
     Square::Index work_back_left_index = backLeftIndex(bishop_index);
 
-    while(!collided && !isOutOfRange(work_back_left_index) && piecePositions.black_squares[work_back_left_index] == start_color) {
+    while(!collided && !isOutOfRange(work_back_left_index) && square_color[work_back_left_index] == start_color) {
         std::optional<PieceColor> occupation = checkOccupation(work_back_left_index);
         Square back_left_square = Square::fromIndex(work_back_left_index).value();
         if(!occupation.has_value()) {

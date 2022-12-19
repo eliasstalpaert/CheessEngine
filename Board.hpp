@@ -14,6 +14,9 @@
 
 //bitset: Default ctor bitset sets all bits to 0
 
+//All black squares on the board to aid calculations
+constexpr std::bitset<64> square_color = 0xAA55AA55AA55AA55;
+
 //Positions of the chess pieces independent of color
 struct PiecePositions {
     std::bitset<64> pawns;
@@ -23,8 +26,6 @@ struct PiecePositions {
     std::bitset<64> queen;
     std::bitset<64> king;
 
-    //All black squares on the board to aid calculation
-    std::bitset<64> black_squares = 0xAA55AA55AA55AA55;
 
     void clearBit(Square::Index index) {
         pawns[index] = 0;
