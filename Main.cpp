@@ -20,13 +20,16 @@ int main(int argc, char* argv[]) {
      * DEBUGGING
      *
      * *************************/
-/*
-    auto debug_board = Fen::createBoard("5k2/3Q4/4Q1Q1/8/8/8/8/4K3 w - - 3 23");
+
+    TimeInfo time;
+    time.white.timeLeft = std::chrono::milliseconds(300000000);
+    time.black.timeLeft = std::chrono::milliseconds(300000000);
+    auto debug_board = Fen::createBoard("6k1/r4p2/6p1/4B3/p4P2/5r1p/K1R5/8 b - - 5 43");
     if(debug_board.has_value()) {
         auto pv = engine->pv(debug_board.value());
         std::cout << "PV: " << pv << '\n';
     }
-*/
+
     if (argc > 1) {
         auto fen = argv[1];
         auto board = Fen::createBoard(fen);
@@ -35,6 +38,8 @@ int main(int argc, char* argv[]) {
             std::cerr << "Parsing FEN failed\n";
             return EXIT_FAILURE;
         }
+
+
 
         auto pv = engine->pv(board.value());
         std::cout << "PV: " << pv << '\n';

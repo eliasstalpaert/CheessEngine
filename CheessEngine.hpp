@@ -12,6 +12,12 @@
 class CheessEngine : public Engine {
 public:
 
+    using TimeOptional = std::optional<std::chrono::time_point<std::chrono::steady_clock>>;
+
+    using Duration = std::chrono::milliseconds;
+
+    using Result = std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score>;
+
     CheessEngine();
 
     ~CheessEngine() override = default;
@@ -37,7 +43,7 @@ private:
 
     //Hash-table linking boards to their repetition for three-fold repetition
 
-    std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score> negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const;
+    Result negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn, const TimeOptional& start_time, const Duration& max_duration) const;
 
     Board::MoveVec generateLegalMoves(const Board &board) const;
 

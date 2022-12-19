@@ -35,32 +35,67 @@ void CheessEngine::newGame() {
  *
  * ******************/
 
+constexpr PrincipalVariation::Score CHECKMATE_SCORE = 100000;
+constexpr PrincipalVariation::Score SCORE_THRESHOLD = 50;
+
+constexpr unsigned ESTIMATED_MOVES = 30; //Fixed
+
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
-    //Compute PV of given board
-
-
     //Iterative deepening with depth-first negamax search
-
-    std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score> negamax_result;
-    for(int i = 0; i < 6; i++) {
-        negamax_result = negamaxSearch(board, i, -150000, 100000, 1);
-        if(abs(std::get<1>(negamax_result)) == 100000) {
-            std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
-            return PrincipalVariation(std::move(std::get<0>(negamax_result)), i, true);
+    if(timeInfo.has_value()) {
+        TimeOptional start_time = std::chrono::steady_clock::now();
+        Duration max_duration(0);
+        switch(board.turn()) {
+            case PieceColor::White :
+                max_duration = timeInfo->white.timeLeft / ESTIMATED_MOVES;
+                break;
+            case PieceColor::Black :
+                max_duration = timeInfo->black.timeLeft / ESTIMATED_MOVES;
+                break;
         }
+        std::optional<Result> current_result = std::nullopt;
+
+        signed search_depth = 0;
+        while(true) {
+            auto negamax_result = negamaxSearch(board, search_depth, CHECKMATE_SCORE - 50000, CHECKMATE_SCORE, 1, start_time, max_duration);
+            PrincipalVariation::Score score = std::get<1>(negamax_result);
+
+            //check deadline expiration
+            if(std::chrono::steady_clock::now() - start_time.value() > max_duration) break;
+
+            //Check for checkmate
+            if(abs(score) == CHECKMATE_SCORE) {
+                std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
+                return PrincipalVariation(std::move(std::get<0>(negamax_result)), search_depth, true);
+            }
+
+            current_result = negamax_result;
+
+            search_depth++;
+        }
+
+        if(!current_result.has_value()) current_result = Result(PrincipalVariation::MoveVec(), 0); //avoid std::optional exception
+
+        std::reverse(std::get<0>(current_result.value()).begin(), std::get<0>(current_result.value()).end());
+        return PrincipalVariation(std::move(std::get<0>(current_result.value())), std::get<1>(current_result.value()), false);
+
+    } else {
+        //No time control, just to depth of 5
+        Result negamax_result;
+        for(int i = 0; i < 6; i++) {
+            negamax_result = negamaxSearch(board, i, CHECKMATE_SCORE - 50000, CHECKMATE_SCORE, 1, std::nullopt, Duration(0));
+            if(abs(std::get<1>(negamax_result)) == CHECKMATE_SCORE) {
+                std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
+                return PrincipalVariation(std::move(std::get<0>(negamax_result)), i, true);
+            }
+        }
+
+        std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
+        return PrincipalVariation(std::move(std::get<0>(negamax_result)), std::get<1>(negamax_result), false);
     }
-    timeInfo.has_value();
-    //TODO: Time control
-
-    //Relative part of the time and check how much score has improved if winning, if stalemate or losing, think further
-
-    //Compute for each legal move the negamax value
-    //If no legal moves, checkmate/stalemate
-    std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
-    return PrincipalVariation(std::move(std::get<0>(negamax_result)), std::get<1>(negamax_result), false);
 }
 
-std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score> CheessEngine::negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const {
+CheessEngine::Result CheessEngine::negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn, const TimeOptional& start_time, const Duration& max_duration) const {
 
     //Generate moves, if no legal moves, check for stalemate/checkmate and assign score
     Board::MoveVec possible_moves = generateLegalMoves(board);
@@ -73,14 +108,9 @@ std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score> CheessEngine:
 
     if(depth == 0) return std::make_tuple(PrincipalVariation::MoveVec(), evalPosition(board)); //Return negamax score from current player's viewpoint
 
-
-
-
     //TODO: order moves
-    Move best_move;
-    bool new_pv_move = false;
+    std::optional<Move> best_move = std::nullopt;
     PrincipalVariation::MoveVec best_pv;
-
 
     for(size_t move_ind = 0; move_ind < possible_moves.size(); move_ind++){
         Board copy_board(board);
@@ -88,20 +118,24 @@ std::tuple<PrincipalVariation::MoveVec ,PrincipalVariation::Score> CheessEngine:
 
         copy_board.makeMove(current_move);
 
-        auto opponent_score = negamaxSearch(copy_board, depth - 1, -beta, -alpha, -turn);
+        auto opponent_score = negamaxSearch(copy_board, depth - 1, -beta, -alpha, -turn, start_time, max_duration);
         PrincipalVariation::Score new_score = -1 * std::get<1>(opponent_score);
 
         if(new_score > alpha) {
             alpha = new_score;
-            new_pv_move = true;
             best_move = current_move; //Remember potential best move belonging to new_score
             best_pv = PrincipalVariation::MoveVec(std::get<0>(opponent_score)); //Remember pv that led to the score
         }
 
+        //Deadline reached, still returns a solution from the requested depth tho, so there will be some delay in returning from deadline expiration
+        if(start_time.has_value() && std::chrono::steady_clock::now() - start_time.value() >= max_duration) {
+            if(!best_move.has_value()) best_move = current_move; //Never occurs I think
+            break;
+        }
+
         if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
-        //TODO: Time control: also break here if time is up!
     }
-    if(new_pv_move) best_pv.push_back(best_move);
+    if(best_move.has_value()) best_pv.push_back(best_move.value());
     return std::make_tuple(best_pv, alpha);
 }
 
