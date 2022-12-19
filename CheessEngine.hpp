@@ -12,7 +12,9 @@
 class CheessEngine : public Engine {
 public:
 
-    using TimeOptional = std::optional<std::chrono::time_point<std::chrono::steady_clock>>;
+    using Clock = std::chrono::steady_clock;
+
+    using TimeOptional = std::optional<std::chrono::time_point<Clock>>;
 
     using Duration = std::chrono::milliseconds;
 

@@ -20,16 +20,16 @@ int main(int argc, char* argv[]) {
      * DEBUGGING
      *
      * *************************/
-
+/*
     TimeInfo time;
-    time.white.timeLeft = std::chrono::milliseconds(300000000);
-    time.black.timeLeft = std::chrono::milliseconds(300000000);
-    auto debug_board = Fen::createBoard("6k1/r4p2/6p1/4B3/p4P2/5r1p/K1R5/8 b - - 5 43");
+    time.white.timeLeft = std::chrono::milliseconds(3000);
+    time.black.timeLeft = std::chrono::milliseconds(3000);
+    auto debug_board = Fen::createBoard("r1r3k1/p3nppp/5q2/3pp3/3nQ1P1/P1P2N1P/P2PPPB1/R1B1KR2 w Q - 0 15");
     if(debug_board.has_value()) {
-        auto pv = engine->pv(debug_board.value());
+        auto pv = engine->pv(debug_board.value(),time);
         std::cout << "PV: " << pv << '\n';
     }
-
+*/
     if (argc > 1) {
         auto fen = argv[1];
         auto board = Fen::createBoard(fen);

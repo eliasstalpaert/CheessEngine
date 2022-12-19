@@ -36,28 +36,30 @@ void CheessEngine::newGame() {
  * ******************/
 
 constexpr PrincipalVariation::Score CHECKMATE_SCORE = 100000;
-constexpr PrincipalVariation::Score SCORE_THRESHOLD = 50;
+constexpr PrincipalVariation::Score START_ALPHA = - 1 * (CHECKMATE_SCORE + 50000);
+constexpr PrincipalVariation::Score START_BETA = CHECKMATE_SCORE;
 
-constexpr unsigned ESTIMATED_MOVES = 30; //Fixed
+constexpr unsigned REMAINING_MOVES = 20; //Fixed
 
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
     //Iterative deepening with depth-first negamax search
     if(timeInfo.has_value()) {
-        TimeOptional start_time = std::chrono::steady_clock::now();
+        TimeOptional start_time = Clock::now();
         Duration max_duration(0);
         switch(board.turn()) {
             case PieceColor::White :
-                max_duration = timeInfo->white.timeLeft / ESTIMATED_MOVES;
+                max_duration = timeInfo->white.timeLeft / REMAINING_MOVES;
                 break;
             case PieceColor::Black :
-                max_duration = timeInfo->black.timeLeft / ESTIMATED_MOVES;
+                max_duration = timeInfo->black.timeLeft / REMAINING_MOVES;
                 break;
         }
         std::optional<Result> current_result = std::nullopt;
 
         signed search_depth = 0;
         while(true) {
-            auto negamax_result = negamaxSearch(board, search_depth, CHECKMATE_SCORE - 50000, CHECKMATE_SCORE, 1, start_time, max_duration);
+
+            Result negamax_result = negamaxSearch(board, search_depth, START_ALPHA, START_BETA, 1, start_time, max_duration);
             PrincipalVariation::Score score = std::get<1>(negamax_result);
 
             //check deadline expiration
@@ -83,7 +85,7 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
         //No time control, just to depth of 5
         Result negamax_result;
         for(int i = 0; i < 6; i++) {
-            negamax_result = negamaxSearch(board, i, CHECKMATE_SCORE - 50000, CHECKMATE_SCORE, 1, std::nullopt, Duration(0));
+            negamax_result = negamaxSearch(board, i, START_ALPHA, START_BETA, 1, std::nullopt, Duration(0));
             if(abs(std::get<1>(negamax_result)) == CHECKMATE_SCORE) {
                 std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
                 return PrincipalVariation(std::move(std::get<0>(negamax_result)), i, true);
@@ -128,10 +130,7 @@ CheessEngine::Result CheessEngine::negamaxSearch(const Board &board, unsigned de
         }
 
         //Deadline reached, still returns a solution from the requested depth tho, so there will be some delay in returning from deadline expiration
-        if(start_time.has_value() && std::chrono::steady_clock::now() - start_time.value() >= max_duration) {
-            if(!best_move.has_value()) best_move = current_move; //Never occurs I think
-            break;
-        }
+        if(start_time.has_value() && Clock::now() - start_time.value() >= max_duration) break;
 
         if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
     }
