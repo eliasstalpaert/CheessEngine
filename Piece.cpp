@@ -73,7 +73,7 @@ std::ostream& operator<<(std::ostream& os, const Piece& piece) {
             output_char = 'k';
             break;
         default:
-            output_char = 'X'; //TODO: throw an exception if char is unrecognized
+            output_char = 'X';
             break;
     }
     if(piece.color() == PieceColor::White) output_char = toupper(output_char);
