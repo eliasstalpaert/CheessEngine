@@ -7,6 +7,7 @@
 #include <memory>
 #include <map>
 #include <algorithm>
+#include <cmath>
 
 CheessEngine::CheessEngine() : halfmove_counter{0}{
 
@@ -39,19 +40,23 @@ constexpr PrincipalVariation::Score CHECKMATE_SCORE = 100000;
 constexpr PrincipalVariation::Score START_ALPHA = - 1 * (CHECKMATE_SCORE + 50000);
 constexpr PrincipalVariation::Score START_BETA = CHECKMATE_SCORE;
 
-constexpr unsigned REMAINING_MOVES = 20; //Fixed
 
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
     //Iterative deepening with depth-first negamax search
     if(timeInfo.has_value()) {
         TimeOptional start_time = Clock::now();
         Duration max_duration(0);
+
+        //Estimate move deadline
         switch(board.turn()) {
             case PieceColor::White :
-                max_duration = timeInfo->white.timeLeft / REMAINING_MOVES;
+                if(timeInfo->white.timeLeft >= std::chrono::milliseconds(10*60*1000)) max_duration = timeInfo->white.timeLeft / 10;
+                else max_duration = timeInfo->white.timeLeft - timeInfo->white.increment;
                 break;
+
             case PieceColor::Black :
-                max_duration = timeInfo->black.timeLeft / REMAINING_MOVES;
+                if(timeInfo->black.timeLeft >= std::chrono::milliseconds(10*60*1000)) max_duration = timeInfo->black.timeLeft / 10;
+                else max_duration = timeInfo->black.timeLeft - timeInfo->black.increment;
                 break;
         }
         std::optional<Result> current_result = std::nullopt;
