@@ -40,6 +40,7 @@ constexpr PrincipalVariation::Score CHECKMATE_SCORE = 100000;
 constexpr PrincipalVariation::Score START_ALPHA = - 1 * (CHECKMATE_SCORE + 50000);
 constexpr PrincipalVariation::Score START_BETA = CHECKMATE_SCORE;
 
+constexpr PrincipalVariation::Score SCORE_THRESHOLD = 100;
 
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
     //Iterative deepening with depth-first negamax search
@@ -74,6 +75,14 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
             if(abs(score) == CHECKMATE_SCORE) {
                 std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
                 return PrincipalVariation(std::move(std::get<0>(negamax_result)), search_depth, true);
+            }
+
+            //Check for small difference
+            if(score >= 0 && score > std::get<1>(negamax_result)) {
+                if((score - std::get<1>(negamax_result)) < SCORE_THRESHOLD) {
+                    current_result = negamax_result;
+                    break;
+                }
             }
 
             current_result = negamax_result;
