@@ -39,6 +39,7 @@ void CheessEngine::newGame() {
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
     //Iterative deepening with depth-first negamax search
     //TODO: Time control
+    timeInfo.has_value();
     SearchResult negamax_result;
     for(int i = 0; i < 6; i++) {
         negamax_result = negamaxSearch(board, i, -150000, 100000, 1);
@@ -48,7 +49,16 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
         }
     }
 
-    timeInfo.has_value();
+    //Search until no longer losing
+    if(std::get<1>(negamax_result) < 0) {
+        bool losing = true;
+        int i = 6;
+        while(losing) {
+            negamax_result = negamaxSearch(board, i, -150000, 100000, 1);
+            if(std::get<1>(negamax_result) >= 0) break; //can maybe cause unnecessary draws
+            else i++;
+        }
+    }
 
     std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
     return PrincipalVariation(std::move(std::get<0>(negamax_result)), std::get<1>(negamax_result), false);
