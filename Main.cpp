@@ -20,13 +20,7 @@ int main(int argc, char* argv[]) {
      * DEBUGGING
      *
      * *************************/
-/*
-    auto debug_board = Fen::createBoard("5k2/3Q4/4Q1Q1/8/8/8/8/4K3 w - - 3 23");
-    if(debug_board.has_value()) {
-        auto pv = engine->pv(debug_board.value());
-        std::cout << "PV: " << pv << '\n';
-    }
-*/
+
     if (argc > 1) {
         auto fen = argv[1];
         auto board = Fen::createBoard(fen);

@@ -4,7 +4,6 @@
 
 #include "CheessEngine.hpp"
 #include <tuple>
-#include <memory>
 #include <map>
 #include <algorithm>
 
@@ -52,9 +51,8 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
 
     //Search until no longer losing
     if(std::get<1>(negamax_result) < 0) {
-        bool losing = true;
         int i = 6;
-        while(losing) {
+        while(true) {
             negamax_result = negamaxSearch(board, i, -150000, 100000, 1);
             if(std::get<1>(negamax_result) >= 0) break; //can maybe cause unnecessary draws
             else i++;
@@ -97,10 +95,8 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
     }
 
 
-    for(size_t move_ind = 0; move_ind < possible_moves.size(); move_ind++){
+    for(const Move& current_move : possible_moves){
         Board copy_board(board);
-        Move& current_move = possible_moves[move_ind];
-
         //MAKE MOVE
         copy_board.makeMove(current_move);
 

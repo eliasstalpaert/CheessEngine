@@ -40,12 +40,12 @@ void Board::setPiece(const Square& square, const Piece::Optional& piece) {
 
     switch (piece->color()) {
         case PieceColor::White:
-            color_positions.white[square_index] = 1;
-            color_positions.black[square_index] = 0;
+            color_positions.white[square_index] = true;
+            color_positions.black[square_index] = false;
             break;
         case PieceColor::Black:
-            color_positions.black[square_index] = 1;
-            color_positions.white[square_index] = 0;
+            color_positions.black[square_index] = true;
+            color_positions.white[square_index] = false;
             break;
         default: //Never occurs
             break;
@@ -56,22 +56,22 @@ void Board::setPiece(const Square& square, const Piece::Optional& piece) {
 
     switch (piece->type()) {
         case PieceType::Pawn:
-            piece_positions.pawns[square_index] = 1;
+            piece_positions.pawns[square_index] = true;
             break;
         case PieceType::Knight:
-            piece_positions.knights[square_index] = 1;
+            piece_positions.knights[square_index] = true;
             break;
         case PieceType::Bishop:
-            piece_positions.bishops[square_index] = 1;
+            piece_positions.bishops[square_index] = true;
             break;
         case PieceType::Rook:
-            piece_positions.rooks[square_index] = 1;
+            piece_positions.rooks[square_index] = true;
             break;
         case PieceType::Queen:
-            piece_positions.queen[square_index] = 1;
+            piece_positions.queen[square_index] = true;
             break;
         case PieceType::King:
-            piece_positions.king[square_index] = 1;
+            piece_positions.king[square_index] = true;
             break;
         default: //Never occurs
             break;
@@ -227,32 +227,32 @@ std::optional<PieceType> Board::clearCapturePiece(const Square &square, bool try
     if(occupy_piece.has_value()) {
         switch (occupy_piece->type()) {
             case PieceType::Pawn :
-                piece_positions.pawns[square.index()] = 0;
+                piece_positions.pawns[square.index()] = false;
                 break;
             case PieceType::Knight :
-                piece_positions.knights[square.index()] = 0;
+                piece_positions.knights[square.index()] = false;
                 break;
             case PieceType::Bishop :
-                piece_positions.bishops[square.index()] = 0;
+                piece_positions.bishops[square.index()] = false;
                 break;
             case PieceType::Rook :
-                piece_positions.rooks[square.index()] = 0;
+                piece_positions.rooks[square.index()] = false;
                 break;
             case PieceType::Queen :
-                piece_positions.queen[square.index()] = 0;
+                piece_positions.queen[square.index()] = false;
                 break;
             case PieceType::King :
                 if(try_capture) return occupy_piece->type(); //early return to not clear colorpositions
-                else piece_positions.king[square.index()] = 0;
+                else piece_positions.king[square.index()] = false;
                 break;
         }
 
         switch (occupy_piece->color()) {
             case PieceColor::White :
-                color_positions.white[square.index()] = 0;
+                color_positions.white[square.index()] = false;
                 break;
             case PieceColor::Black :
-                color_positions.black[square.index()] = 0;
+                color_positions.black[square.index()] = false;
                 break;
         }
         return occupy_piece->type();
@@ -344,6 +344,8 @@ void Board::makeMove(const Move& move) {
                     //Black kingside
                     castling_rights &= ~CastlingRights::BlackKingside;
                     break;
+                default :
+                    break;
             }
         }
 
@@ -364,6 +366,8 @@ void Board::makeMove(const Move& move) {
             case 63 :
                 //Black kingside
                 castling_rights &= ~CastlingRights::BlackKingside;
+                break;
+            default :
                 break;
         }
 
