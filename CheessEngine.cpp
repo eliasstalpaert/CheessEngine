@@ -38,8 +38,7 @@ void CheessEngine::newGame() {
  * ******************/
 
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
-    //TODO: Time control
-    timeInfo.has_value();
+    timeInfo.has_value(); //Time control currently not implemented
 
     //Iterative deepening of fixed depth of 6
     SearchResult negamax_result;
@@ -124,7 +123,6 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
         repetition_map[rep]--;
 
         if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
-        //TODO: Time control: also break here if time is up!
     }
     if(best_move.has_value()) {
         if(transposition_table.size() < max_transpo_size) {
@@ -187,10 +185,6 @@ const std::map<PieceType, PrincipalVariation::Score> piece_value { //Shannon poi
 
 
 const PrincipalVariation::Score square_value = 10;
-
-//Fifty move draw using current value of halfmove counter
-//Threefold repetition check
-//TODO: Forcing a draw with special rules
 
 PrincipalVariation::Score CheessEngine::evalPosition(const Board &board) const {
     PrincipalVariation::Score score = 0;

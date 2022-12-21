@@ -742,7 +742,6 @@ void Board::pseudoLegalMovesFrom(const Square& from,
 
 
 void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& moves) const {
-    //TODO: remove code duplication
 
     //Check occupation in front of pawn (pawn will never be resting in last rank)
     Square current_square = Square::fromIndex(pawn_index).value();
@@ -838,7 +837,7 @@ void Board::pseudoLegalPawnMovesFrom(Square::Index pawn_index, Board::MoveVec& m
 }
 
 void Board::pseudoLegalKingMovesFrom(Square::Index king_index, Board::MoveVec &moves) const {
-    //TODO: code duplication (maybe sth with giving directions to check)
+
     Square current_square = Square::fromIndex(king_index).value();
 
     Square::Index front_left_index = frontLeftIndex(king_index);
