@@ -100,6 +100,15 @@ int Board::halfMoveCounter() const {
     return halfmove_counter;
 }
 
+PiecePositions Board::getPiecePositions() const {
+    return piecePositions;
+}
+
+size_t BoardHashRepetition::operator()(const Board &board) const {
+    return std::hash<PiecePositions>{}(board.getPiecePositions()) + std::hash<CastlingRights>{}(board.castlingRights()) + std::hash<Square::Optional>{}(board.enPassantSquare());
+}
+
+
 unsigned Board::getAmountOfPiece(PieceColor color, PieceType piece_type) const {
     std::bitset<64> color_bits;
     switch(color) {

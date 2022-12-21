@@ -27,6 +27,7 @@ std::string CheessEngine::author() const {
 
 void CheessEngine::newGame() {
   //Reset state of the engine
+  repetition_map.clear();
 }
 
 /*****************
@@ -79,6 +80,7 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
         Move& current_move = possible_moves[move_ind];
 
         copy_board.makeMove(current_move);
+
 
         auto opponent_score = negamaxSearch(copy_board, depth - 1, -beta, -alpha, -turn);
         PrincipalVariation::Score new_score = -1 * std::get<1>(opponent_score);

@@ -8,6 +8,7 @@
 #include <memory>
 #include "Engine.hpp"
 #include "Board.hpp"
+#include <unordered_map>
 
 class CheessEngine : public Engine {
 public:
@@ -39,6 +40,7 @@ public:
 private:
 
     //TODO: Hash-table linking boards to their repetition for three-fold repetition
+    std::unordered_map<Board, unsigned, BoardHashRepetition> repetition_map;
 
     SearchResult negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const;
 

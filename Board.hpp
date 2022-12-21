@@ -37,6 +37,14 @@ struct PiecePositions {
     }
 };
 
+template<>
+struct std::hash<PiecePositions>
+{
+    std::size_t operator()(const PiecePositions& pieces) const {
+        return (std::hash<std::bitset<64>>{}(pieces.pawns) + std::hash<std::bitset<64>>{}(pieces.knights) + std::hash<std::bitset<64>>{}(pieces.bishops) + std::hash<std::bitset<64>>{}(pieces.rooks) + std::hash<std::bitset<64>>{}(pieces.queen) + std::hash<std::bitset<64>>{}(pieces.king));
+    }
+};
+
 struct ColorPositions {
     std::bitset<64> white;
     std::bitset<64> black;
@@ -59,6 +67,7 @@ public:
     void setHalfMoveCounter(int count);
     signed halfMoveCounter() const;
     std::bitset<64> getColorPositions(PieceColor turn) const;
+    PiecePositions getPiecePositions() const;
 
     bool isSquareAttacked(PieceColor turn, Square::Index index) const;
     bool isPlayerChecked(PieceColor turn) const;
@@ -83,7 +92,6 @@ private:
     Square::Optional en_passant_square;
 
     int halfmove_counter; //signed because of std::stoi
-
 
     Square::Index frontIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
     Square::Index backIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
@@ -116,6 +124,11 @@ private:
     std::optional<PieceType> clearCapturePiece(const Square& square, bool capture);
 
     std::optional<PieceColor> checkOccupation(Square::Index index) const;
+};
+
+class BoardHashRepetition {
+public :
+    size_t operator()(const Board& board) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const Board& board);
