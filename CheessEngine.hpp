@@ -38,9 +38,6 @@ public:
 
 private:
 
-    //TODO: Fifty-move repetition rule
-    unsigned halfmove_counter;
-
     //TODO: Hash-table linking boards to their repetition for three-fold repetition
 
     SearchResult negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const;

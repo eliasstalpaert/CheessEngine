@@ -66,6 +66,14 @@ static bool parseTurn(const std::string& turn, Board& board) {
     }
 }
 
+static bool parseHalfmove(const std::string& count, Board& board) {
+    try {
+        board.setHalfMoveCounter(std::stoi(count));
+    } catch (const std::exception& exception) {
+        return false;
+    }
+}
+
 static bool parseCastlingRights(const std::string& rights, Board& board) {
     if (rights == "-") {
         board.setCastlingRights(CastlingRights::None);
@@ -150,6 +158,10 @@ Board::Optional Fen::createBoard(std::istream& fenStream) {
     auto halfmove = nextField(fenStream);
 
     if (halfmove.empty()) {
+        return std::nullopt;
+    }
+
+    if(!parseHalfmove(halfmove, board)) {
         return std::nullopt;
     }
 

@@ -8,7 +8,7 @@
 #include <map>
 #include <algorithm>
 
-CheessEngine::CheessEngine() : halfmove_counter{0}{
+CheessEngine::CheessEngine() {
 
 }
 

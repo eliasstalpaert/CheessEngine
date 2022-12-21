@@ -62,6 +62,8 @@ public:
     CastlingRights castlingRights() const;
     void setEnPassantSquare(const Square::Optional& square);
     Square::Optional enPassantSquare() const;
+    void setHalfMoveCounter(signed count);
+    signed halfMoveCounter() const;
     std::bitset<64> getColorPositions(PieceColor turn) const;
 
     bool isSquareAttacked(PieceColor turn, Square::Index index) const;
@@ -87,6 +89,8 @@ private:
     CastlingRights castling_rights;
 
     Square::Optional en_passant_square;
+
+    signed halfmove_counter; //signed because of std::stoi
 
 
     Square::Index frontIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;

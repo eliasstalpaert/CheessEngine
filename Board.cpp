@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-Board::Board() : checked_player{std::nullopt}, en_passant_square{std::nullopt}
+Board::Board() : checked_player{std::nullopt}, en_passant_square{std::nullopt}, halfmove_counter{0}
 {
 }
 
@@ -111,6 +111,14 @@ Square::Optional Board::enPassantSquare() const {
     return en_passant_square;
 }
 
+void Board::setHalfMoveCounter(signed count) {
+    halfmove_counter = count;
+}
+
+int Board::halfMoveCounter() const {
+    return halfmove_counter;
+}
+
 unsigned Board::getAmountOfPiece(PieceColor color, PieceType piece_type) const {
     std::bitset<64> color_bits;
     switch(color) {
@@ -184,7 +192,7 @@ bool Board::isPlayerChecked(PieceColor turn) const {
  * *****************************************************************/
 
 //Returns the type of piece captured in case of a capture
-std::optional<PieceType> Board::clearCapturePiece(const Square &square, bool capture) {
+std::optional<PieceType> Board::clearCapturePiece(const Square &square, bool try_capture) {
     Piece::Optional occupy_piece = piece(square);
     if(occupy_piece.has_value()) {
         switch (occupy_piece->type()) {
@@ -204,7 +212,7 @@ std::optional<PieceType> Board::clearCapturePiece(const Square &square, bool cap
                 piecePositions.queen[square.index()] = 0;
                 break;
             case PieceType::King :
-                if(capture) return occupy_piece->type(); //early return to not clear colorpositions
+                if(try_capture) return occupy_piece->type(); //early return to not clear colorpositions
                 else piecePositions.king[square.index()] = 0;
                 break;
         }
@@ -233,11 +241,18 @@ void Board::makeMove(const Move& move) {
     //Capturecheck is in clearpiece
     std::optional<PieceType> captured_piece = clearCapturePiece(to_square, true);
 
+
     if(captured_piece.has_value() && captured_piece.value() == PieceType::King) {
         //DO NOTHING
     } else {
-        clearCapturePiece(from_square, false);
 
+        if(captured_piece.has_value() || from_piece->type() == PieceType::Pawn) {
+            halfmove_counter = 0; //Fifty-move rule
+        } else {
+            halfmove_counter++;
+        }
+
+        clearCapturePiece(from_square, false);
         //Castling move: also moves the rook!
         if(from_piece->type() == PieceType::King) {
             signed move_distance = static_cast<signed>(to_index) - static_cast<signed>(from_index);
