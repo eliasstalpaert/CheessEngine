@@ -51,6 +51,15 @@ struct ColorPositions {
     std::bitset<64> black;
 };
 
+template<>
+struct std::hash<ColorPositions>
+{
+    std::size_t operator()(const ColorPositions& color) const {
+        return (std::hash<std::bitset<64>>{}(color.white) + std::hash<std::bitset<64>>{}(color.black));
+    }
+};
+
+
 struct Repetition {
     PiecePositions piece_positions;
     CastlingRights castling_rights;
@@ -144,6 +153,20 @@ private:
 
     std::optional<PieceColor> checkOccupation(Square::Index index) const;
 };
+
+template<>
+struct std::hash<Board>
+{
+    std::size_t operator()(const Board& board) const {
+        return (std::hash<PiecePositions>{}(board.piecePositions()) +
+        std::hash<ColorPositions>{}(board.colorPositions()) +
+        std::hash<PieceColor>{}(board.turn()) +
+        std::hash<CastlingRights>{}(board.castlingRights()) +
+        std::hash<Square::Optional>{}(board.enPassantSquare()) +
+        std::hash<int>{}(board.halfMoveCounter()));
+    }
+};
+
 
 bool operator==(const Board &b1, const Board& b2);
 bool operator==(const Repetition &r1, const Repetition &r2);

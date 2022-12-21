@@ -7,6 +7,10 @@ Move::Move(const Square& from, const Square& to,
 {
 }
 
+Move::Move() : from_square(Square::A1), to_square(Square::A1) { // Initialized to illegal move (not possible)
+
+}
+
 Move::Optional Move::fromUci(const std::string& uci) {
     if(uci.length() > 5 || uci.length() < 4) return std::nullopt; //Invalid UCI length
     Square::Optional from = Square::fromName(uci.substr(0,2));
@@ -24,6 +28,18 @@ Move::Optional Move::fromUci(const std::string& uci) {
        return Move(from.value(), to.value(), promotion_type);
     }
     else return Move(from.value(), to.value());
+}
+
+void Move::setFrom(const Square &from) {
+    from_square = from;
+}
+
+void Move::setTo(const Square &to) {
+    to_square = to;
+}
+
+void Move::setPromotion(std::optional<PieceType> promotion) {
+    move_promotion = promotion;
 }
 
 Square Move::from() const {

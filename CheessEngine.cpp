@@ -8,7 +8,7 @@
 #include <map>
 #include <algorithm>
 
-CheessEngine::CheessEngine() {
+CheessEngine::CheessEngine() : max_transpo_size{50000000} { //Estimated based on 2GB / 40 bytes per entry
 
 }
 
@@ -28,6 +28,7 @@ std::string CheessEngine::author() const {
 void CheessEngine::newGame() {
   //Reset state of the engine
   repetition_map.clear();
+  transposition_table.clear();
 }
 
 /*****************
@@ -37,9 +38,10 @@ void CheessEngine::newGame() {
  * ******************/
 
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
-    //Iterative deepening with depth-first negamax search
     //TODO: Time control
     timeInfo.has_value();
+
+    //Iterative deepening of fixed depth of 6
     SearchResult negamax_result;
     for(int i = 0; i < 6; i++) {
         negamax_result = negamaxSearch(board, i, -150000, 100000, 1);
@@ -79,10 +81,21 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
 
 
 
-
-    //TODO: order moves
     std::optional<Move> best_move = std::nullopt;
     PrincipalVariation::MoveVec best_pv;
+
+    //Check for previous best move and put it as first element
+    if(transposition_table.contains(board)) {
+        Move best_prev = transposition_table[board];
+        for(auto iter = possible_moves.begin(); iter != possible_moves.end(); iter++) {
+            if(*iter == best_prev) {
+                possible_moves.erase(iter);
+                break;
+            }
+        }
+        possible_moves.push_back(best_prev);
+        std::reverse(possible_moves.begin(), possible_moves.end());
+    }
 
 
     for(size_t move_ind = 0; move_ind < possible_moves.size(); move_ind++){
@@ -113,7 +126,18 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
         if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
         //TODO: Time control: also break here if time is up!
     }
-    if(best_move.has_value()) best_pv.push_back(best_move.value());
+    if(best_move.has_value()) {
+        if(transposition_table.size() < max_transpo_size) {
+            try {
+                transposition_table[board] = best_move.value();
+            } catch(const std::exception& exception) {
+                //Exceptions could be thrown due to limited memory issues if my size constraint fails
+                //Documentation: "If an exception is thrown by any operation, the insertion has no effect" (cppreference)
+
+            }
+        }
+        best_pv.push_back(best_move.value());
+    }
     return std::make_tuple(best_pv, alpha);
 }
 
@@ -223,11 +247,15 @@ PrincipalVariation::Score CheessEngine::getSpaceScore(const Board &board) const 
 
 std::optional<HashInfo> CheessEngine::hashInfo() const {
     //Only relevant if transposition tables are used
-    return Engine::hashInfo();
+    HashInfo hash_info;
+    hash_info.defaultSize = 2000000000; //2GB
+    hash_info.maxSize = 2000000000;
+    hash_info.minSize = 128000000; //128MB
+    return hash_info;
 }
 
 void CheessEngine::setHashSize(std::size_t size) {
     //Only relevant if transposition tables are used
-    Engine::setHashSize(size);
+    max_transpo_size = size / 30;
 }
 

@@ -42,6 +42,11 @@ private:
     //unsigned values are initialized to zero if key doesn't exist yet (by definition)
     std::unordered_map<Repetition, unsigned, std::hash<Repetition>> repetition_map; //Possible error due to comparison being different than hashed variables?
 
+    //transposition table keeping best move of previous iterations
+    std::unordered_map<Board, Move, std::hash<Board>> transposition_table;
+
+    size_t max_transpo_size;
+
     SearchResult negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn);
 
     Board::MoveVec generateLegalMoves(const Board &board) const;

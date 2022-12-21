@@ -20,6 +20,11 @@ public:
 
     Move(const Square& from, const Square& to,
          const std::optional<PieceType>& promotion = std::nullopt);
+    Move();
+
+    void setFrom(const Square& from);
+    void setTo(const Square& to);
+    void setPromotion(std::optional<PieceType> promotion);
 
     static Optional fromUci(const std::string& uci);
 
