@@ -40,9 +40,9 @@ void CheessEngine::newGame() {
 PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional &timeInfo) {
     timeInfo.has_value(); //Time control currently not implemented
 
-    //Iterative deepening of fixed depth of 6
+    //Iterative deepening of fixed depth of 5
     SearchResult negamax_result;
-    for(int i = 0; i < 7; i++) {
+    for(int i = 0; i < 6; i++) {
         negamax_result = negamaxSearch(board, i, -150000, 100000, 1);
         if(abs(std::get<1>(negamax_result)) == 100000) {
             std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
