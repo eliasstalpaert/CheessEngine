@@ -20,11 +20,6 @@ public:
 
     Move(const Square& from, const Square& to,
          const std::optional<PieceType>& promotion = std::nullopt);
-    Move();
-    //cctor
-    Move(const Move& move);
-    //copy assignment
-    Move& operator= (const Move& fraction);
 
     static Optional fromUci(const std::string& uci);
 

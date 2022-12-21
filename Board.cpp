@@ -2,25 +2,6 @@
 
 #include <cmath>
 
-Board::Board() : checked_player{std::nullopt}, en_passant_square{std::nullopt}, halfmove_counter{0}
-{
-}
-
-Board::Board(const Board &board) : checked_player{board.checked_player}, piecePositions{board.piecePositions}, colorPositions{board.colorPositions}, current_turn{board.current_turn}, castling_rights{board.castling_rights}, en_passant_square{board.en_passant_square}
-{
-
-}
-
-Board &Board::operator=(const Board &board) {
-    checked_player = board.checked_player;
-    piecePositions = board.piecePositions;
-    colorPositions = board.colorPositions;
-    current_turn = board.current_turn;
-    castling_rights = board.castling_rights;
-    en_passant_square = board.en_passant_square;
-    return *this;
-}
-
 void Board::setPiece(const Square& square, const Piece::Optional& piece) {
     Square::Index square_index = square.index();
 
@@ -111,7 +92,7 @@ Square::Optional Board::enPassantSquare() const {
     return en_passant_square;
 }
 
-void Board::setHalfMoveCounter(signed count) {
+void Board::setHalfMoveCounter(int count) {
     halfmove_counter = count;
 }
 

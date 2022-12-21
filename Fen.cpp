@@ -69,6 +69,7 @@ static bool parseTurn(const std::string& turn, Board& board) {
 static bool parseHalfmove(const std::string& count, Board& board) {
     try {
         board.setHalfMoveCounter(std::stoi(count));
+        return true;
     } catch (const std::exception& exception) {
         return false;
     }

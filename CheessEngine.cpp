@@ -70,8 +70,7 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
 
 
     //TODO: order moves
-    Move best_move;
-    bool new_pv_move = false;
+    std::optional<Move> best_move = std::nullopt;
     PrincipalVariation::MoveVec best_pv;
 
 
@@ -84,9 +83,10 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
         auto opponent_score = negamaxSearch(copy_board, depth - 1, -beta, -alpha, -turn);
         PrincipalVariation::Score new_score = -1 * std::get<1>(opponent_score);
 
+        if(new_score < 0 && copy_board.halfMoveCounter() >= 100) new_score = 0; //Claim draw if not winning after completing 50th move or completing after 50th move if opponent didn't claim the draw
+
         if(new_score > alpha) {
             alpha = new_score;
-            new_pv_move = true;
             best_move = current_move; //Remember potential best move belonging to new_score
             best_pv = PrincipalVariation::MoveVec(std::get<0>(opponent_score)); //Remember pv that led to the score
         }
@@ -94,7 +94,7 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
         if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
         //TODO: Time control: also break here if time is up!
     }
-    if(new_pv_move) best_pv.push_back(best_move);
+    if(best_move.has_value()) best_pv.push_back(best_move.value());
     return std::make_tuple(best_pv, alpha);
 }
 

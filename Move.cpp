@@ -7,19 +7,6 @@ Move::Move(const Square& from, const Square& to,
 {
 }
 
-Move::Move(const Move &move) : from_square{move.from_square}, to_square{move.to_square}, move_promotion{move.move_promotion}{
-
-}
-
-Move &Move::operator=(const Move &move) {
-    from_square = move.from_square;
-    to_square = move.to_square;
-    move_promotion = move.move_promotion;
-    return *this;
-}
-
-Move::Move() : from_square{Square::A1}, to_square{Square::A1}, move_promotion{std::nullopt} {}
-
 Move::Optional Move::fromUci(const std::string& uci) {
     if(uci.length() > 5 || uci.length() < 4) return std::nullopt; //Invalid UCI length
     Square::Optional from = Square::fromName(uci.substr(0,2));

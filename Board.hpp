@@ -48,12 +48,6 @@ public:
     using Optional = std::optional<Board>;
     using MoveVec = std::vector<Move>;
 
-    Board();
-    //cctor
-    Board(const Board& board);
-    //copy assignment
-    Board& operator= (const Board& board);
-
     void setPiece(const Square& square, const Piece::Optional& piece);
     Piece::Optional piece(const Square& square) const;
     void setTurn(PieceColor turn);
@@ -62,7 +56,7 @@ public:
     CastlingRights castlingRights() const;
     void setEnPassantSquare(const Square::Optional& square);
     Square::Optional enPassantSquare() const;
-    void setHalfMoveCounter(signed count);
+    void setHalfMoveCounter(int count);
     signed halfMoveCounter() const;
     std::bitset<64> getColorPositions(PieceColor turn) const;
 
@@ -78,8 +72,6 @@ public:
 
 private:
 
-    std::optional<PieceColor> checked_player;
-
     PiecePositions piecePositions;
 
     ColorPositions colorPositions;
@@ -90,7 +82,7 @@ private:
 
     Square::Optional en_passant_square;
 
-    signed halfmove_counter; //signed because of std::stoi
+    int halfmove_counter; //signed because of std::stoi
 
 
     Square::Index frontIndex(Square::Index from, std::optional<PieceColor> turn = std::nullopt) const;
