@@ -125,7 +125,10 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
         if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
     }
     if(best_move.has_value()) {
-        if(transposition_table.size() < max_transpo_size) {
+        if(transposition_table.contains(board)) {
+            transposition_table[board] = best_move.value();
+        }
+        else if(transposition_table.size() < max_transpo_size) {
             try {
                 transposition_table[board] = best_move.value();
             } catch(const std::exception& exception) {
