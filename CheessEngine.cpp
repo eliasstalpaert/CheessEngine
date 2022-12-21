@@ -256,6 +256,6 @@ std::optional<HashInfo> CheessEngine::hashInfo() const {
 
 void CheessEngine::setHashSize(std::size_t size) {
     //Only relevant if transposition tables are used
-    max_transpo_size = size / 30;
+    max_transpo_size = size / 40;
 }
 
