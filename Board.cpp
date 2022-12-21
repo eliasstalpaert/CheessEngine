@@ -626,7 +626,7 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
     }
 
     //en passant
-    if(en_passant_square->index() == backIndex(index, turn)) return true;
+    if(en_passant_square.has_value() && en_passant_square->index() == backIndex(index, turn)) return true;
 
     //not attacked
     return false;
