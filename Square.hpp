@@ -41,9 +41,9 @@ template<>
 struct std::hash<Square>
 {
     std::size_t operator()(const Square& square) const {
-        //unsigned int s = square.index();
-
-        return (std::hash<Square::Index>{}(square.index()) + std::hash<Square::Coordinate>{}(square.file()) + std::hash<Square::Coordinate>{}(square.rank()));
+        return (std::hash<Square::Index>{}(square.index()) ^
+        std::hash<Square::Coordinate>{}(square.file()) ^
+        std::hash<Square::Coordinate>{}(square.rank()));
     }
 };
 

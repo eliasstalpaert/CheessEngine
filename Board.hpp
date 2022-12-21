@@ -41,7 +41,12 @@ template<>
 struct std::hash<PiecePositions>
 {
     std::size_t operator()(const PiecePositions& pieces) const {
-        return (std::hash<std::bitset<64>>{}(pieces.pawns) + std::hash<std::bitset<64>>{}(pieces.knights) + std::hash<std::bitset<64>>{}(pieces.bishops) + std::hash<std::bitset<64>>{}(pieces.rooks) + std::hash<std::bitset<64>>{}(pieces.queen) + std::hash<std::bitset<64>>{}(pieces.king));
+        return (std::hash<std::bitset<64>>{}(pieces.pawns) ^
+        std::hash<std::bitset<64>>{}(pieces.knights) ^
+        std::hash<std::bitset<64>>{}(pieces.bishops) ^
+        std::hash<std::bitset<64>>{}(pieces.rooks) ^
+        std::hash<std::bitset<64>>{}(pieces.queen) ^
+        std::hash<std::bitset<64>>{}(pieces.king));
     }
 };
 
@@ -55,7 +60,8 @@ template<>
 struct std::hash<ColorPositions>
 {
     std::size_t operator()(const ColorPositions& color) const {
-        return (std::hash<std::bitset<64>>{}(color.white) + std::hash<std::bitset<64>>{}(color.black));
+        return (std::hash<std::bitset<64>>{}(color.white) ^
+        std::hash<std::bitset<64>>{}(color.black));
     }
 };
 
@@ -71,7 +77,10 @@ template<>
 struct std::hash<Repetition>
 {
     std::size_t operator()(const Repetition& rep) const {
-        return (std::hash<PiecePositions>{}(rep.piece_positions) + std::hash<CastlingRights>{}(rep.castling_rights) + std::hash<Square::Optional>{}(rep.en_passant_square) + std::hash<PieceColor>{}(rep.turn));
+        return (std::hash<PiecePositions>{}(rep.piece_positions) ^
+        std::hash<CastlingRights>{}(rep.castling_rights) ^
+        std::hash<Square::Optional>{}(rep.en_passant_square) ^
+        std::hash<PieceColor>{}(rep.turn));
     }
 };
 
@@ -158,11 +167,11 @@ template<>
 struct std::hash<Board>
 {
     std::size_t operator()(const Board& board) const {
-        return (std::hash<PiecePositions>{}(board.piecePositions()) +
-        std::hash<ColorPositions>{}(board.colorPositions()) +
-        std::hash<PieceColor>{}(board.turn()) +
-        std::hash<CastlingRights>{}(board.castlingRights()) +
-        std::hash<Square::Optional>{}(board.enPassantSquare()) +
+        return (std::hash<PiecePositions>{}(board.piecePositions()) ^
+        std::hash<ColorPositions>{}(board.colorPositions()) ^
+        std::hash<PieceColor>{}(board.turn()) ^
+        std::hash<CastlingRights>{}(board.castlingRights()) ^
+        std::hash<Square::Optional>{}(board.enPassantSquare()) ^
         std::hash<int>{}(board.halfMoveCounter()));
     }
 };
