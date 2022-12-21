@@ -54,7 +54,7 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
     return PrincipalVariation(std::move(std::get<0>(negamax_result)), std::get<1>(negamax_result), false);
 }
 
-CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) const {
+CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsigned depth, PrincipalVariation::Score alpha, PrincipalVariation::Score beta, int turn) {
 
     //Generate moves, if no legal moves, check for stalemate/checkmate and assign score
     Board::MoveVec possible_moves = generateLegalMoves(board);
@@ -79,19 +79,26 @@ CheessEngine::SearchResult CheessEngine::negamaxSearch(const Board &board, unsig
         Board copy_board(board);
         Move& current_move = possible_moves[move_ind];
 
+        //MAKE MOVE
         copy_board.makeMove(current_move);
 
+
+        Repetition rep = copy_board.getRepetition();
+        repetition_map[rep]++; //inserts a new element initialized to 0 if key doesn't exist
 
         auto opponent_score = negamaxSearch(copy_board, depth - 1, -beta, -alpha, -turn);
         PrincipalVariation::Score new_score = -1 * std::get<1>(opponent_score);
 
-        if(new_score < 0 && copy_board.halfMoveCounter() >= 100) new_score = 0; //Claim draw if not winning after completing 50th move or completing after 50th move if opponent didn't claim the draw
+        if(new_score < 0 && (copy_board.halfMoveCounter() >= 100 || repetition_map.at(rep) >= 3)) new_score = 0; //Claim draw if not winning using draw conditions
 
         if(new_score > alpha) {
             alpha = new_score;
             best_move = current_move; //Remember potential best move belonging to new_score
             best_pv = PrincipalVariation::MoveVec(std::get<0>(opponent_score)); //Remember pv that led to the score
         }
+
+        //UNMAKE MOVE
+        repetition_map[rep]--;
 
         if(alpha >= beta) break; //other moves shouldn't be considered (fail-hard beta cutoff)
         //TODO: Time control: also break here if time is up!

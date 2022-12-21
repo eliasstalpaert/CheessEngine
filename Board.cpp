@@ -2,43 +2,76 @@
 
 #include <cmath>
 
+bool operator== (const PiecePositions& p1, const PiecePositions& p2)
+{
+    return (p1.pawns == p2.pawns &&
+            p1.knights == p2.knights &&
+            p1.bishops == p2.bishops &&
+            p1.rooks == p2.rooks &&
+            p1.queen == p2.queen &&
+            p1.king == p2.king);
+}
+
+bool operator== (const ColorPositions& c1, const ColorPositions& c2)
+{
+    return (c1.white == c2.white &&
+            c1.black == c2.black);
+}
+
+
+bool operator==(const Repetition &r1, const Repetition &r2) {
+    return (r1.piece_positions == r2.piece_positions &&
+            r1.turn == r2.turn &&
+            r1.en_passant_square == r2.en_passant_square &&
+            r1.castling_rights == r2.castling_rights);
+}
+
+bool operator==(const Board &b1, const Board& b2) {
+    return (b1.piecePositions() == b2.piecePositions() &&
+            b1.colorPositions() == b2.colorPositions() &&
+            b1.turn() == b2.turn() &&
+            b1.castlingRights() == b2.castlingRights() &&
+            b1.enPassantSquare() == b2.enPassantSquare() &&
+            b1.halfMoveCounter() == b2.halfMoveCounter());
+}
+
 void Board::setPiece(const Square& square, const Piece::Optional& piece) {
     Square::Index square_index = square.index();
 
     switch (piece->color()) {
         case PieceColor::White:
-            colorPositions.white[square_index] = 1;
-            colorPositions.black[square_index] = 0;
+            color_positions.white[square_index] = 1;
+            color_positions.black[square_index] = 0;
             break;
         case PieceColor::Black:
-            colorPositions.black[square_index] = 1;
-            colorPositions.white[square_index] = 0;
+            color_positions.black[square_index] = 1;
+            color_positions.white[square_index] = 0;
             break;
         default: //Never occurs
             break;
     }
 
     //Clear bit in all bitboards (avoid checking for each one)
-    piecePositions.clearBit(square_index);
+    piece_positions.clearBit(square_index);
 
     switch (piece->type()) {
         case PieceType::Pawn:
-            piecePositions.pawns[square_index] = 1;
+            piece_positions.pawns[square_index] = 1;
             break;
         case PieceType::Knight:
-            piecePositions.knights[square_index] = 1;
+            piece_positions.knights[square_index] = 1;
             break;
         case PieceType::Bishop:
-            piecePositions.bishops[square_index] = 1;
+            piece_positions.bishops[square_index] = 1;
             break;
         case PieceType::Rook:
-            piecePositions.rooks[square_index] = 1;
+            piece_positions.rooks[square_index] = 1;
             break;
         case PieceType::Queen:
-            piecePositions.queen[square_index] = 1;
+            piece_positions.queen[square_index] = 1;
             break;
         case PieceType::King:
-            piecePositions.king[square_index] = 1;
+            piece_positions.king[square_index] = 1;
             break;
         default: //Never occurs
             break;
@@ -52,17 +85,17 @@ Piece::Optional Board::piece(const Square& square) const {
 
     if(isOutOfRange(index)) return std::nullopt;
 
-    if(colorPositions.white[index]) color = PieceColor::White;
-    else if(colorPositions.black[index]) color = PieceColor::Black;
+    if(color_positions.white[index]) color = PieceColor::White;
+    else if(color_positions.black[index]) color = PieceColor::Black;
     else return std::nullopt;
 
     char candidate_symbol = 'x'; //empty square
-    if(piecePositions.pawns[index]) candidate_symbol = 'p';
-    else if(piecePositions.knights[index]) candidate_symbol = 'n';
-    else if(piecePositions.bishops[index]) candidate_symbol = 'b';
-    else if(piecePositions.rooks[index]) candidate_symbol = 'r';
-    else if(piecePositions.queen[index]) candidate_symbol = 'q';
-    else if(piecePositions.king[index]) candidate_symbol = 'k';
+    if(piece_positions.pawns[index]) candidate_symbol = 'p';
+    else if(piece_positions.knights[index]) candidate_symbol = 'n';
+    else if(piece_positions.bishops[index]) candidate_symbol = 'b';
+    else if(piece_positions.rooks[index]) candidate_symbol = 'r';
+    else if(piece_positions.queen[index]) candidate_symbol = 'q';
+    else if(piece_positions.king[index]) candidate_symbol = 'k';
 
     if(color == PieceColor::White) return Piece::fromSymbol(toupper(candidate_symbol));
     else return Piece::fromSymbol(candidate_symbol);
@@ -100,39 +133,38 @@ int Board::halfMoveCounter() const {
     return halfmove_counter;
 }
 
-PiecePositions Board::getPiecePositions() const {
-    return piecePositions;
+PiecePositions Board::piecePositions() const {
+    return piece_positions;
 }
 
-size_t BoardHashRepetition::operator()(const Board &board) const {
-    return std::hash<PiecePositions>{}(board.getPiecePositions()) + std::hash<CastlingRights>{}(board.castlingRights()) + std::hash<Square::Optional>{}(board.enPassantSquare());
+ColorPositions Board::colorPositions() const {
+    return color_positions;
 }
-
 
 unsigned Board::getAmountOfPiece(PieceColor color, PieceType piece_type) const {
     std::bitset<64> color_bits;
     switch(color) {
         case PieceColor::White :
-            color_bits = colorPositions.white;
+            color_bits = color_positions.white;
             break;
         case PieceColor::Black :
-            color_bits = colorPositions.black;
+            color_bits = color_positions.black;
             break;
     }
 
     switch(piece_type) {
         case PieceType::Pawn :
-            return (color_bits & piecePositions.pawns).count();
+            return (color_bits & piece_positions.pawns).count();
         case PieceType::Rook :
-            return (color_bits & piecePositions.rooks).count();
+            return (color_bits & piece_positions.rooks).count();
         case PieceType::Bishop :
-            return (color_bits & piecePositions.bishops).count();
+            return (color_bits & piece_positions.bishops).count();
         case PieceType::Knight :
-            return (color_bits & piecePositions.knights).count();
+            return (color_bits & piece_positions.knights).count();
         case PieceType::Queen :
-            return (color_bits & piecePositions.queen).count();
+            return (color_bits & piece_positions.queen).count();
         case PieceType::King :
-            return (color_bits & piecePositions.king).count();
+            return (color_bits & piece_positions.king).count();
     }
     // never reached
     return 0;
@@ -141,14 +173,22 @@ unsigned Board::getAmountOfPiece(PieceColor color, PieceType piece_type) const {
 std::bitset<64> Board::getColorPositions(PieceColor turn) const {
     switch (turn) {
         case PieceColor::White :
-            return colorPositions.white;
+            return color_positions.white;
         case PieceColor::Black :
-            return colorPositions.black;
+            return color_positions.black;
     }
     //never reached
     return 0;
 }
 
+Repetition Board::getRepetition() const {
+    Repetition rep;
+    rep.piece_positions = piece_positions;
+    rep.castling_rights = castling_rights;
+    rep.en_passant_square = en_passant_square;
+    rep.turn = current_turn;
+    return rep;
+}
 
 /**************
  *
@@ -160,10 +200,10 @@ bool Board::isPlayerChecked(PieceColor turn) const {
     std::bitset<64> player_king;
     switch(turn) {
         case PieceColor::White :
-            player_king = colorPositions.white & piecePositions.king;
+            player_king = color_positions.white & piece_positions.king;
             break;
         case PieceColor::Black :
-            player_king = colorPositions.black & piecePositions.king;
+            player_king = color_positions.black & piece_positions.king;
             break;
     }
     for(size_t i = 0; i < player_king.size(); i++) {
@@ -187,32 +227,32 @@ std::optional<PieceType> Board::clearCapturePiece(const Square &square, bool try
     if(occupy_piece.has_value()) {
         switch (occupy_piece->type()) {
             case PieceType::Pawn :
-                piecePositions.pawns[square.index()] = 0;
+                piece_positions.pawns[square.index()] = 0;
                 break;
             case PieceType::Knight :
-                piecePositions.knights[square.index()] = 0;
+                piece_positions.knights[square.index()] = 0;
                 break;
             case PieceType::Bishop :
-                piecePositions.bishops[square.index()] = 0;
+                piece_positions.bishops[square.index()] = 0;
                 break;
             case PieceType::Rook :
-                piecePositions.rooks[square.index()] = 0;
+                piece_positions.rooks[square.index()] = 0;
                 break;
             case PieceType::Queen :
-                piecePositions.queen[square.index()] = 0;
+                piece_positions.queen[square.index()] = 0;
                 break;
             case PieceType::King :
                 if(try_capture) return occupy_piece->type(); //early return to not clear colorpositions
-                else piecePositions.king[square.index()] = 0;
+                else piece_positions.king[square.index()] = 0;
                 break;
         }
 
         switch (occupy_piece->color()) {
             case PieceColor::White :
-                colorPositions.white[square.index()] = 0;
+                color_positions.white[square.index()] = 0;
                 break;
             case PieceColor::Black :
-                colorPositions.black[square.index()] = 0;
+                color_positions.black[square.index()] = 0;
                 break;
         }
         return occupy_piece->type();
@@ -386,6 +426,7 @@ void Board::makeMove(const Move& move) {
 }
 
 
+
 /********************************************************
  *
  * MOVE GENERATION
@@ -403,8 +444,8 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == frontIndex(index, turn) && piecePositions.king[working_index]) return true;
-                if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
+                if(working_index == frontIndex(index, turn) && piece_positions.king[working_index]) return true;
+                if(piece_positions.rooks[working_index] || piece_positions.queen[working_index]) return true;
                 else break;
             }
             else break;
@@ -417,8 +458,8 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         std::optional<PieceColor> occupying = checkOccupation(working_index);
         if(checkOccupation(working_index).has_value()) {
             if(occupying != turn) {
-                if(working_index == backIndex(index, turn) && piecePositions.king[working_index]) return true;
-                if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
+                if(working_index == backIndex(index, turn) && piece_positions.king[working_index]) return true;
+                if(piece_positions.rooks[working_index] || piece_positions.queen[working_index]) return true;
                 else break;
             }
             else break;
@@ -432,8 +473,8 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
             std::optional<PieceColor> occupying = checkOccupation(working_index);
             if(checkOccupation(working_index).has_value()) {
                 if(occupying != turn) {
-                    if(working_index == rightIndex(index, turn) && piecePositions.king[working_index]) return true;
-                    if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
+                    if(working_index == rightIndex(index, turn) && piece_positions.king[working_index]) return true;
+                    if(piece_positions.rooks[working_index] || piece_positions.queen[working_index]) return true;
                     else break;
                 }
                 else break;
@@ -453,8 +494,8 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
             std::optional<PieceColor> occupying = checkOccupation(working_index);
             if(checkOccupation(working_index).has_value()) {
                 if(occupying != turn) {
-                    if(working_index == leftIndex(index, turn) && piecePositions.king[working_index]) return true;
-                    if(piecePositions.rooks[working_index] || piecePositions.queen[working_index]) return true;
+                    if(working_index == leftIndex(index, turn) && piece_positions.king[working_index]) return true;
+                    if(piece_positions.rooks[working_index] || piece_positions.queen[working_index]) return true;
                     else break;
                 }
                 else break;
@@ -474,8 +515,8 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
             std::optional<PieceColor> occupying = checkOccupation(working_index);
             if(checkOccupation(working_index).has_value()) {
                 if(occupying != turn) {
-                    if(working_index == frontRightIndex(index, turn) && (piecePositions.pawns[working_index] || piecePositions.king[working_index])) return true;
-                    if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
+                    if(working_index == frontRightIndex(index, turn) && (piece_positions.pawns[working_index] || piece_positions.king[working_index])) return true;
+                    if(piece_positions.bishops[working_index] || piece_positions.queen[working_index]) return true;
                     else break;
                 }
                 else break;
@@ -495,8 +536,8 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
             std::optional<PieceColor> occupying = checkOccupation(working_index);
             if(checkOccupation(working_index).has_value()) {
                 if(occupying != turn) {
-                    if(working_index == frontLeftIndex(index, turn) && (piecePositions.pawns[working_index] || piecePositions.king[working_index])) return true;
-                    if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
+                    if(working_index == frontLeftIndex(index, turn) && (piece_positions.pawns[working_index] || piece_positions.king[working_index])) return true;
+                    if(piece_positions.bishops[working_index] || piece_positions.queen[working_index]) return true;
                     else break;
                 }
                 else break;
@@ -516,8 +557,8 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
             std::optional<PieceColor> occupying = checkOccupation(working_index);
             if(checkOccupation(working_index).has_value()) {
                 if(occupying != turn) {
-                    if(working_index == backRightIndex(index, turn) && piecePositions.king[working_index]) return true;
-                    if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
+                    if(working_index == backRightIndex(index, turn) && piece_positions.king[working_index]) return true;
+                    if(piece_positions.bishops[working_index] || piece_positions.queen[working_index]) return true;
                     else break;
                 }
                 else break;
@@ -537,8 +578,8 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
             std::optional<PieceColor> occupying = checkOccupation(working_index);
             if(checkOccupation(working_index).has_value()) {
                 if(occupying != turn) {
-                    if(working_index == backLeftIndex(index, turn) && piecePositions.king[working_index]) return true;
-                    if(piecePositions.bishops[working_index] || piecePositions.queen[working_index]) return true;
+                    if(working_index == backLeftIndex(index, turn) && piece_positions.king[working_index]) return true;
+                    if(piece_positions.bishops[working_index] || piece_positions.queen[working_index]) return true;
                     else break;
                 }
                 else break;
@@ -560,14 +601,14 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         if(square_color[front_left_index] != index_color) {
             std::optional<PieceColor> occupying = checkOccupation(front_left_index);
             if(occupying.has_value() && occupying != turn) {
-                if(piecePositions.knights[front_left_index]) return true;
+                if(piece_positions.knights[front_left_index]) return true;
             }
         }
 
         if(square_color[front_right_index] != index_color) {
             std::optional<PieceColor> occupying = checkOccupation(front_right_index);
             if(occupying.has_value() && occupying != turn) {
-                if(piecePositions.knights[front_right_index]) return true;
+                if(piece_positions.knights[front_right_index]) return true;
             }
         }
 
@@ -580,14 +621,14 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         if(square_color[back_left_index] != index_color) {
             std::optional<PieceColor> occupying = checkOccupation(back_left_index);
             if(occupying.has_value() && occupying != turn) {
-                if(piecePositions.knights[back_left_index]) return true;
+                if(piece_positions.knights[back_left_index]) return true;
             }
         }
 
         if(square_color[back_right_index] != index_color) {
             std::optional<PieceColor> occupying = checkOccupation(back_right_index);
             if(occupying.has_value() && occupying != turn) {
-                if(piecePositions.knights[back_right_index]) return true;
+                if(piece_positions.knights[back_right_index]) return true;
             }
         }
 
@@ -602,7 +643,7 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         if(square_color[left_front_index] != index_color) {
             std::optional<PieceColor> occupying = checkOccupation(left_front_index);
             if(occupying.has_value() && occupying != turn) {
-                if(piecePositions.knights[left_front_index]) return true;
+                if(piece_positions.knights[left_front_index]) return true;
             }
         }
     }
@@ -611,7 +652,7 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         if(square_color[left_back_index] != index_color) {
             std::optional<PieceColor> occupying = checkOccupation(left_back_index);
             if(occupying.has_value() && occupying != turn) {
-                if(piecePositions.knights[left_back_index]) return true;
+                if(piece_positions.knights[left_back_index]) return true;
             }
         }
     }
@@ -620,7 +661,7 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         if(square_color[right_front_index] != index_color) {
             std::optional<PieceColor> occupying = checkOccupation(right_front_index);
             if(occupying.has_value() && occupying != turn) {
-                if(piecePositions.knights[right_front_index]) return true;
+                if(piece_positions.knights[right_front_index]) return true;
             }
         }
     }
@@ -629,7 +670,7 @@ bool Board::isSquareAttacked(PieceColor turn, Square::Index index) const {
         if(square_color[right_back_index] != index_color) {
             std::optional<PieceColor> occupying = checkOccupation(right_back_index);
             if(occupying.has_value() && occupying != turn) {
-                if(piecePositions.knights[right_back_index]) return true;
+                if(piece_positions.knights[right_back_index]) return true;
             }
         }
     }
@@ -647,21 +688,21 @@ void Board::pseudoLegalMoves( MoveVec& moves ) const {
 
     switch (current_turn) {
         case PieceColor::White:
-            current_turn_pieces = colorPositions.white;
+            current_turn_pieces = color_positions.white;
             break;
         case PieceColor::Black:
-            current_turn_pieces = colorPositions.black;
+            current_turn_pieces = color_positions.black;
             break;
     }
 
     for(Square::Index piece_index = 0; piece_index < 64 ; piece_index++) {
         if(current_turn_pieces[piece_index]) {
-            if(piecePositions.pawns[piece_index]) pseudoLegalPawnMovesFrom(piece_index, moves);
-            else if(piecePositions.king[piece_index]) pseudoLegalKingMovesFrom(piece_index, moves);
-            else if(piecePositions.knights[piece_index]) pseudoLegalKnightMovesFrom(piece_index, moves);
-            else if(piecePositions.rooks[piece_index]) pseudoLegalRookMovesFrom(piece_index, moves);
-            else if(piecePositions.bishops[piece_index]) pseudoLegalBishopMovesFrom(piece_index, moves);
-            else if(piecePositions.queen[piece_index]) pseudoLegalQueenMovesFrom(piece_index, moves);
+            if(piece_positions.pawns[piece_index]) pseudoLegalPawnMovesFrom(piece_index, moves);
+            else if(piece_positions.king[piece_index]) pseudoLegalKingMovesFrom(piece_index, moves);
+            else if(piece_positions.knights[piece_index]) pseudoLegalKnightMovesFrom(piece_index, moves);
+            else if(piece_positions.rooks[piece_index]) pseudoLegalRookMovesFrom(piece_index, moves);
+            else if(piece_positions.bishops[piece_index]) pseudoLegalBishopMovesFrom(piece_index, moves);
+            else if(piece_positions.queen[piece_index]) pseudoLegalQueenMovesFrom(piece_index, moves);
         }
     }
 }
@@ -1157,8 +1198,8 @@ void Board::pseudoLegalQueenMovesFrom(Square::Index index, Board::MoveVec &moves
 
 std::optional<PieceColor> Board::checkOccupation(Square::Index index) const {
     //CAREFUL!: no index bound checking is done, so an empty return value could also mean it is out of bounds (not so safe access also, performance reasons)
-    if(colorPositions.white[index]) return PieceColor::White;
-    else if(colorPositions.black[index]) return PieceColor::Black;
+    if(color_positions.white[index]) return PieceColor::White;
+    else if(color_positions.black[index]) return PieceColor::Black;
     else return std::nullopt;
 }
 

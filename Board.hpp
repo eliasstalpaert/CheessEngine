@@ -45,9 +45,25 @@ struct std::hash<PiecePositions>
     }
 };
 
+
 struct ColorPositions {
     std::bitset<64> white;
     std::bitset<64> black;
+};
+
+struct Repetition {
+    PiecePositions piece_positions;
+    CastlingRights castling_rights;
+    Square::Optional en_passant_square;
+    PieceColor turn;
+};
+
+template<>
+struct std::hash<Repetition>
+{
+    std::size_t operator()(const Repetition& rep) const {
+        return (std::hash<PiecePositions>{}(rep.piece_positions) + std::hash<CastlingRights>{}(rep.castling_rights) + std::hash<Square::Optional>{}(rep.en_passant_square) + std::hash<PieceColor>{}(rep.turn));
+    }
 };
 
 class Board {
@@ -66,8 +82,11 @@ public:
     Square::Optional enPassantSquare() const;
     void setHalfMoveCounter(int count);
     signed halfMoveCounter() const;
+    PiecePositions piecePositions() const;
+    ColorPositions colorPositions() const;
+
     std::bitset<64> getColorPositions(PieceColor turn) const;
-    PiecePositions getPiecePositions() const;
+    Repetition getRepetition() const;
 
     bool isSquareAttacked(PieceColor turn, Square::Index index) const;
     bool isPlayerChecked(PieceColor turn) const;
@@ -81,9 +100,9 @@ public:
 
 private:
 
-    PiecePositions piecePositions;
+    PiecePositions piece_positions;
 
-    ColorPositions colorPositions;
+    ColorPositions color_positions;
 
     PieceColor current_turn;
 
@@ -126,10 +145,13 @@ private:
     std::optional<PieceColor> checkOccupation(Square::Index index) const;
 };
 
-class BoardHashRepetition {
-public :
-    size_t operator()(const Board& board) const;
-};
+bool operator==(const Board &b1, const Board& b2);
+bool operator==(const Repetition &r1, const Repetition &r2);
+bool operator==(const PiecePositions &p1, const PiecePositions &p2);
+bool operator==(const ColorPositions &c1, const PiecePositions &c2);
+
+
+
 
 std::ostream& operator<<(std::ostream& os, const Board& board);
 
