@@ -43,7 +43,7 @@ PrincipalVariation CheessEngine::pv(const Board &board, const TimeInfo::Optional
 
     //Iterative deepening of fixed depth of 6
     SearchResult negamax_result;
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 7; i++) {
         negamax_result = negamaxSearch(board, i, -150000, 100000, 1);
         if(abs(std::get<1>(negamax_result)) == 100000) {
             std::reverse(std::get<0>(negamax_result).begin(), std::get<0>(negamax_result).end());
