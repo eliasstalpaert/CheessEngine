@@ -1,6 +1,7 @@
 #include "Board.hpp"
 
 #include <cmath>
+#include <ostream>
 
 bool operator== (const PiecePositions& p1, const PiecePositions& p2)
 {
@@ -1377,6 +1378,40 @@ bool Board::doublePushCandidate(Square::Index index) const {
 
 
 std::ostream& operator<<(std::ostream& os, const Board& board) {
-    (void)board;
+    for(signed i = 56; i >= 0; i = i - 8) {
+        for(signed j = i; j < i + 8; j++) {
+            char print_char = '.';
+            Square::Optional s = Square::fromIndex(j);
+            std::optional<Piece> p = std::nullopt;
+            if(s.has_value()) p = board.piece(s.value());
+            else break;
+            if(p.has_value()) {
+                switch(p->type()) {
+                    case PieceType::Pawn :
+                        print_char = 'p';
+                        break;
+                    case PieceType::Rook :
+                        print_char = 'r';
+                        break;
+                    case PieceType::Knight :
+                        print_char = 'n';
+                        break;
+                    case PieceType::Bishop :
+                        print_char = 'b';
+                        break;
+                    case PieceType::Queen :
+                        print_char = 'q';
+                        break;
+                    case PieceType::King :
+                        print_char = 'k';
+                        break;
+                }
+                if(p->color() == PieceColor::White) print_char = toupper(print_char);
+            }
+            std::string print_string(1,print_char); //most weird error ever, how could print_char possibly call a private Square constructor
+            os << print_string << std::string(1, ' ');
+        }
+        os << std::endl;
+    }
     return os;
 }
