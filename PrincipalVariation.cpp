@@ -28,7 +28,10 @@ PrincipalVariation::MoveIter PrincipalVariation::end() const {
 
 std::ostream& operator<<(std::ostream& os, const PrincipalVariation& pv) {
     if(pv.isMate()) os << "CHECKMATE";
-    else os << pv.score();
+    else{
+        if(pv.score() > 0) os << '+';
+        os << pv.score();
+    }
     os << " " << "[ ";
     for(PrincipalVariation::MoveIter iter = pv.begin(); iter != pv.end(); iter++) {
         os << *iter << " ";
